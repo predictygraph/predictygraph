@@ -109,6 +109,72 @@ class SvgRenderer:
             for k, (_, eid, end, i) in enumerate(lst):
                 self.port_shift[(eid, end)] = (k - (len(lst) - 1) / 2) * step
 
+    def _separate_channels(self, lane: float = 9.0):
+        """Distinct edges whose sideways runs land on the same level and overlap get their
+        own lanes (above/below), instead of being drawn on top of each other. Edges that
+        share a source or target keep the shared level (that is a deliberate bus)."""
+        runs = []
+        for e in self.doc.edges:
+            if e.style.get("route", "curve") not in ("bend", "ortho") or e.attrs.get("exit") or e.attrs.get("enter"):
+                continue
+            pts, axis = self.edge_geometry(e)
+            if axis not in ("v", "h") or len(pts) != 2:
+                continue
+            (x0, y0), (x1, y1) = pts
+            v = axis == "v"
+            a0, a1 = (y0, y1) if v else (x0, x1)
+            c0, c1 = (x0, x1) if v else (y0, y1)
+            if abs(c1 - c0) < 0.5:
+                continue
+            level = self.bend_level.get(e.id, (a0 + a1) / 2)
+            runs.append({"e": e, "axis": axis, "level": level, "lo": min(c0, c1), "hi": max(c0, c1),
+                         "c0": c0, "c1": c1, "a0": a0, "a1": a1})
+        # cluster runs on (roughly) the same level and axis that overlap sideways
+        runs.sort(key=lambda r: (r["axis"], r["level"]))
+        used = set()
+        for i, r in enumerate(runs):
+            if i in used:
+                continue
+            cl = [i]
+            for j in range(i + 1, len(runs)):
+                s = runs[j]
+                if j in used or s["axis"] != r["axis"] or abs(s["level"] - r["level"]) > lane:
+                    continue
+                if any(min(s["hi"], runs[k]["hi"]) - max(s["lo"], runs[k]["lo"]) > 1 for k in cl):
+                    cl.append(j)
+            if len(cl) < 2:
+                continue
+            # merge members that form a bus (shared src or dst AND same look) into one lane;
+            # a dashed "later" path into the same node is a distinct trace
+            def look(ed):
+                return (ed.body, ed.style.get("stroke-dasharray"), ed.style.get("stroke"), tuple(sorted(ed.classes)))
+            lanes: list[list[int]] = []
+            for k in cl:
+                ek = runs[k]["e"]
+                for ln in lanes:
+                    if any((runs[m]["e"].src == ek.src or runs[m]["e"].dst == ek.dst)
+                           and look(runs[m]["e"]) == look(ek) for m in ln):
+                        ln.append(k)
+                        break
+                else:
+                    lanes.append([k])
+            if len(lanes) < 2:
+                continue
+            used.update(cl)
+            # order lanes so runs don't cross: the lane whose run starts further along its
+            # travel direction turns first. Use mean (start - end) sideways as the key.
+            def key(ln):
+                return sum(runs[m]["c0"] - runs[m]["c1"] for m in ln) / len(ln)
+            lanes.sort(key=key)
+            base = sum(runs[m]["level"] for m in cl) / len(cl)
+            n = len(lanes)
+            for idx, ln in enumerate(lanes):
+                lvl = base + (idx - (n - 1) / 2) * lane
+                for m in ln:
+                    rr = runs[m]
+                    lo_a, hi_a = sorted((rr["a0"], rr["a1"]))
+                    self.bend_level[rr["e"].id] = min(max(lvl, lo_a + 4), hi_a - 4)
+
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
         level, so they merge into a single bus line (class-diagram style)."""
@@ -590,6 +656,7 @@ class SvgRenderer:
         self.out = edges_out = []
         self.prepare_edges()
         self._shared_bends()
+        self._separate_channels()
         for e in self.doc.edges:
             self.render_edge(e)
         self.out = body_nodes

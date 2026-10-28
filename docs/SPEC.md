@@ -79,6 +79,11 @@ Per-edge attributes override arrow defaults:
   as needed so every jog is diagonal.
 - `diagonal-angle=45` — slant angle in degrees from the flow axis (10–80; 45 = octilinear)
 - Both keys work on edges, groups (nearest group wins), the `graph` line and in CSS.
+- **Lanes:** when the sideways runs of different edges would land on the same line and
+  overlap, they are spread into parallel lanes (9 px apart, ordered so they don't cross).
+  Edges sharing a source or target *and* the same look (body, dash, colour, classes) are
+  a deliberate bus and stay merged; a dashed `..>` path into the same node is a
+  distinct trace and gets its own lane.
 - `exit=top|bottom|left|right`, `enter=...` — pin the side an edge leaves/enters (port at the
   side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner.
 
