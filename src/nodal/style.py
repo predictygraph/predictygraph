@@ -162,14 +162,14 @@ def apply_styles(doc: Document) -> None:
         st.update(sheet.compute(e, [a for a in anc if a is not None]))
         if "edge-width" in ge:
             st["stroke-width"] = ge["edge-width"]
-        for k in ("arrow", "head", "route", "radius", "stub"):
+        for k in ("arrow", "head", "route", "radius", "stub", "head-size"):
             if k in ge:
                 st[k] = ge[k]
         for k, v in e.attrs.items():
             if k == "width":
                 st["stroke-width"] = v
             elif k in ("stroke", "color", "arrow", "head", "route", "stroke-dasharray", "font-size",
-                       "radius", "stub"):
+                       "radius", "stub", "head-size"):
                 st[k] = v
         e.style = sheet.resolve_vars(st)
     _ = root_inherit

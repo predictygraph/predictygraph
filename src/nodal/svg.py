@@ -193,26 +193,73 @@ class SvgRenderer:
         if "arrow" in st and "arrow" not in e.attrs and e.arrow == "end":
             arrow = st["arrow"]
         head = st.get("head", "triangle")
-        # shorten line under heads so the stroke doesn't poke through
-        s = max(1.0, 0.6 + width * 0.35)
         pts = list(pts)
+        tip_end, tip_start = pts[-1], pts[0]
+        # head length: explicit CSS/attr `head-size`, else grows gently with width (capped)
+        hl = px(st.get("head-size"), min(18.0, 6.0 + width * 2.2))
+        free = route == "straight" or flow_dir(lca(self.doc.items[e.src], self.doc.items[e.dst],
+                                                   self.doc.root)) == "auto"
+
+        def end_dir(tip, prev):
+            if free:
+                dx, dy = tip[0] - prev[0], tip[1] - prev[1]
+            elif axis == "v":
+                dx, dy = 0.0, tip[1] - prev[1]
+            else:
+                dx, dy = tip[0] - prev[0], 0.0
+            l = math.hypot(dx, dy) or 1.0
+            return dx / l, dy / l
+
+        heads = []
         if arrow in ("end", "both"):
-            pts[-1] = self._pull(pts[-1], pts[-2], 0)
+            d_end = end_dir(tip_end, pts[-2])
+            heads.append((tip_end, d_end))
+            # stop the stroke at the head's base so nothing pokes through the tip
+            pts[-1] = (tip_end[0] - d_end[0] * hl * 0.9, tip_end[1] - d_end[1] * hl * 0.9)
+        if arrow in ("start", "both"):
+            d_st = end_dir(tip_start, pts[1])
+            heads.append((tip_start, d_st))
+            pts[0] = (tip_start[0] - d_st[0] * hl * 0.9, tip_start[1] - d_st[1] * hl * 0.9)
         stub = px(st["stub"]) if "stub" in st else None
-        attrs = [f'd="{self.path_d(pts, axis, route, px(st.get("radius"), 12 if route == "bend" else 6), stub)}"', 'fill="none"', f'stroke="{color}"',
-                 f'stroke-width="{width:g}"', 'stroke-linecap="round"', 'stroke-linejoin="round"']
+        if stub is not None and heads:
+            stub += hl  # keep the bend clear of the head
+        radius = px(st.get("radius"), 12 if route == "bend" else 6)
+        cap = "butt" if heads else "round"
+        attrs = [f'd="{self.path_d(pts, axis, route, radius, stub)}"', 'fill="none"', f'stroke="{color}"',
+                 f'stroke-width="{width:g}"', f'stroke-linecap="{cap}"', 'stroke-linejoin="round"']
         if dash:
             attrs.append(f'stroke-dasharray="{dash}"')
-        if arrow in ("end", "both"):
-            attrs.append(f'marker-end="url(#{self.marker(head, color, width, False)})"')
-        if arrow in ("start", "both"):
-            attrs.append(f'marker-start="url(#{self.marker(head, color, width, True)})"')
-        _ = s
         cls = " ".join(["nodal-edge"] + e.classes)
         self.out.append(f'<g id="{e.id}" class="{cls}"><path {" ".join(attrs)}/>')
+        for tip, dvec in heads:
+            self.out.append(self.head_shape(head, tip, dvec, hl, color, width))
         if e.label:
             self.edge_label(e, pts)
         self.out.append("</g>")
+
+    @staticmethod
+    def head_shape(kind, tip, d, hl, color, width):
+        """Arrowhead as plain geometry: tip sits exactly on the target outline."""
+        tx, ty = tip
+        ux, uy = d
+        nx, ny = -uy, ux
+        hw = max(hl * 0.42, width * 1.2)
+
+        def P(a, b):  # a along -d from tip, b along normal
+            return f"{tx - ux * a + nx * b:.1f},{ty - uy * a + ny * b:.1f}"
+        if kind == "open":
+            return (f'<polyline class="nodal-head" points="{P(hl, hw)} {P(0, 0)} {P(hl, -hw)}" fill="none" '
+                    f'stroke="{color}" stroke-width="{max(1.2, width * 0.8):g}" stroke-linejoin="miter"/>')
+        if kind == "diamond":
+            return (f'<polygon class="nodal-head" points="{P(0, 0)} {P(hl / 2, hw)} {P(hl, 0)} {P(hl / 2, -hw)}" '
+                    f'fill="{color}"/>')
+        if kind == "dot":
+            r = hl / 2.2
+            return f'<circle class="nodal-head" cx="{tx - ux * r:.1f}" cy="{ty - uy * r:.1f}" r="{r:.1f}" fill="{color}"/>'
+        if kind == "bar":
+            return (f'<line class="nodal-head" x1="{tx + nx * hw:.1f}" y1="{ty + ny * hw:.1f}" '
+                    f'x2="{tx - nx * hw:.1f}" y2="{ty - ny * hw:.1f}" stroke="{color}" stroke-width="{max(2, width):g}"/>')
+        return f'<polygon class="nodal-head" points="{P(0, 0)} {P(hl, hw)} {P(hl, -hw)}" fill="{color}"/>'
 
     @staticmethod
     def _pull(p, toward, dist):

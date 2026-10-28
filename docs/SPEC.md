@@ -60,6 +60,9 @@ Per-edge attributes override arrow defaults:
 - `width=3` — stroke width in px
 - `arrow=none|end|start|both` — overrides what the token says
 - `head=triangle|open|diamond|dot|bar` — arrowhead shape
+- `head-size=N` — arrowhead length in px (default grows with width: 6 + 2.2 x width, max 18).
+  Heads are drawn as geometry, not SVG markers: the tip sits exactly on the target
+  outline, the stroke stops at the head's base, and the head is aligned with the flow axis.
 - `route=straight|ortho|curve|bend` — routing for this edge
   - `curve`: full S-shaped bezier.
   - `bend`: straight in the middle, rounded only at the ends. The edge leaves and enters
