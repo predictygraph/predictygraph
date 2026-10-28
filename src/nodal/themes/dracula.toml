@@ -1,0 +1,21 @@
+schema = 1
+name = "dracula"
+dark = true
+
+[palette]
+bg = "#282a36"
+surface = "#44475a"
+fg = "#f8f8f2"
+muted = "#bfc3d9"
+border = "#bd93f9"
+red = "#ff5555"
+orange = "#ffb86c"
+yellow = "#f1fa8c"
+green = "#50fa7b"
+cyan = "#8be9fd"
+blue = "#6272a4"
+purple = "#bd93f9"
+
+[roles]
+accent = "purple"
+edge = "purple"

@@ -1,0 +1,15 @@
+# Mermaid "stateDiagram-v2" docs example (Still / Moving / Crash)
+graph theme=nord dir=TB route=bend
+
+start "" shape=circle width=18 height=18 .solid
+Still "Still" shape=round
+Moving "Moving" shape=round
+Crash "Crash" shape=round .red
+stop "" shape=circle width=18 height=18 .solid
+
+start -> Still
+Still -> stop
+Still -> Moving
+Moving -> Still
+Moving -> Crash
+Crash -> stop

@@ -1,0 +1,20 @@
+schema = 1
+name = "gruvbox-dark"
+dark = true
+
+[palette]
+bg = "#282828"
+surface = "#3c3836"
+fg = "#ebdbb2"
+muted = "#a89984"
+border = "#665c54"
+red = "#fb4934"
+orange = "#fe8019"
+yellow = "#fabd2f"
+green = "#b8bb26"
+cyan = "#8ec07c"
+blue = "#83a598"
+purple = "#d3869b"
+
+[roles]
+accent = "yellow"

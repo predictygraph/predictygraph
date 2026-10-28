@@ -1,0 +1,14 @@
+# Mermaid "block-beta" docs example: blocks in a grid, edges between them
+graph theme=gruvbox-dark layout=grid cols=3 gap=30 route=straight
+
+a "A" .yellow
+b "B wide" col=1 row=0 width=120
+c "C" shape=circle .red
+d "D" shape=diamond
+e "E" .green
+group f "F (nested block)" layout=row {
+  f1 "F1"; f2 "F2"
+}
+a -> d
+b -> e
+c -> f

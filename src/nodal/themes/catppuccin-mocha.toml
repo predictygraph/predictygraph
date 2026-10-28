@@ -1,0 +1,23 @@
+schema = 1
+name = "catppuccin-mocha"
+dark = true
+
+[palette]
+bg = "#1e1e2e"
+surface = "#313244"
+fg = "#cdd6f4"
+muted = "#a6adc8"
+border = "#585b70"
+red = "#f38ba8"
+orange = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+cyan = "#94e2d5"
+blue = "#89b4fa"
+purple = "#cba6f7"
+
+[roles]
+accent = "purple"
+
+[shape]
+radius = 10

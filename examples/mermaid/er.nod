@@ -1,0 +1,11 @@
+# Mermaid "erDiagram" docs example (customer / order / line-item)
+graph theme=dracula dir=LR route=ortho arrow=none
+
+CUSTOMER "CUSTOMER\nname\ncustNumber\nsector"
+ORDER "ORDER\norderNumber\ndeliveryAddress"
+LINE_ITEM "LINE-ITEM\nproductCode\nquantity\npricePerUnit"
+DELIVERY_ADDRESS "DELIVERY-ADDRESS"
+
+CUSTOMER -- ORDER "places  1 : N" head=bar
+ORDER -- LINE_ITEM "contains  1 : N" head=bar
+CUSTOMER .. DELIVERY_ADDRESS "uses  1 : N" head=bar

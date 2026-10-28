@@ -1,0 +1,10 @@
+# Mermaid "classDiagram" docs example (Animal hierarchy)
+graph theme=solarized-light dir=TB route=ortho head=open
+css { node { text-align: left; } }
+
+Animal "Animal\n──────────\n+int age\n+String gender\n──────────\n+isMammal()\n+mate()"
+Duck "Duck\n──────────\n+String beakColor\n──────────\n+swim()\n+quack()"
+Fish "Fish\n──────────\n-int sizeInFeet\n──────────\n-canEat()"
+Zebra "Zebra\n──────────\n+bool is_wild\n──────────\n+run()"
+
+Duck, Fish, Zebra -> Animal head=triangle .accent

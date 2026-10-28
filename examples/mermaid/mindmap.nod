@@ -1,0 +1,19 @@
+# Mermaid "mindmap" docs example, as nested radial groups
+graph theme=catppuccin-mocha layout=radial center=root route=straight arrow=none
+
+root "mindmap" shape=circle .purple
+group origins "Origins" layout=column gap=10 .blue {
+  o1 "Long history"
+  o2 "Popularisation:\nTony Buzan"
+}
+group research "Research" layout=column gap=10 .green {
+  r1 "On effectiveness\nand features"
+  r2 "On automatic creation"
+}
+group tools "Tools" layout=column gap=10 .orange {
+  t1 "Pen and paper"
+  t2 "Mermaid"
+}
+root -- origins
+root -- research
+root -- tools

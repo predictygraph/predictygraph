@@ -1,0 +1,17 @@
+# Mermaid "architecture-beta" docs example (API in the cloud)
+graph theme=github-light dir=LR route=ortho radius=6
+
+group api "API (cloud)" layout=layered dir=LR {
+  db "Database" shape=cylinder .blue
+  server "Server" .accent
+  group storage "Storage" layout=column gap=10 {
+    disk1 "Disk 1" shape=cylinder
+    disk2 "Disk 2" shape=cylinder
+  }
+}
+gateway "Internet" shape=pill .green
+
+gateway -> server
+server <-> db
+disk1 -- server
+disk2 -- db

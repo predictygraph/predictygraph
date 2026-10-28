@@ -1,0 +1,21 @@
+schema = 1
+name = "nord"
+dark = true
+
+[palette]
+bg = "#2e3440"
+surface = "#3b4252"
+fg = "#eceff4"
+muted = "#d8dee9"
+border = "#81a1c1"
+red = "#bf616a"
+orange = "#d08770"
+yellow = "#ebcb8b"
+green = "#a3be8c"
+cyan = "#88c0d0"
+blue = "#81a1c1"
+purple = "#b48ead"
+
+[roles]
+accent = "cyan"
+edge = "cyan"

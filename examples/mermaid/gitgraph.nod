@@ -1,0 +1,16 @@
+# Mermaid "gitGraph" docs example: commits on lanes (fixed rows)
+graph theme=solarized-dark layout=fixed route=bend arrow=none edge-width=3
+css { node { min-width: 22px; min-height: 22px; padding: 2px; font-size: 10px; } }
+
+main "main" at=0,8 shape=none
+develop "develop" at=0,68 shape=none
+c1 "1" shape=circle at=90,0 .blue
+c2 "2" shape=circle at=150,0 .blue
+c3 "3" shape=circle at=210,60 .green
+c4 "4" shape=circle at=270,60 .green
+c5 "5" shape=circle at=330,0 .blue
+c6 "6" shape=circle at=390,0 .blue
+
+c1 -- c2 -- c5 -- c6 .blue
+c2 -- c3 -- c4 .green
+c4 -- c5 .green

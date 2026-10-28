@@ -1,0 +1,15 @@
+# Mermaid "flowchart" docs example (Christmas)
+graph theme=default dir=TB route=ortho radius=8
+
+A "Christmas"
+B "Go shopping"
+C "Let me think" shape=diamond
+D "Laptop"
+E "iPhone"
+F "Car" .accent
+
+A -> B "Get money"
+B -> C
+C -> D "One"
+C -> E "Two"
+C -> F "Three"

@@ -1,0 +1,11 @@
+schema = 1
+name = "solarized-dark"
+extends = "solarized-light"
+dark = true
+
+[palette]
+bg = "#002b36"
+surface = "#073642"
+fg = "#eee8d5"
+muted = "#93a1a1"
+border = "#586e75"
