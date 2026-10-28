@@ -1,0 +1,23 @@
+schema = 1
+name = "catppuccin-latte"
+dark = false
+
+[palette]
+bg = "#eff1f5"
+surface = "#e6e9ef"
+fg = "#4c4f69"
+muted = "#6c6f85"
+border = "#9ca0b0"
+red = "#d20f39"
+orange = "#fe640b"
+yellow = "#df8e1d"
+green = "#40a02b"
+cyan = "#179299"
+blue = "#1e66f5"
+purple = "#8839ef"
+
+[roles]
+accent = "purple"
+
+[shape]
+radius = 10

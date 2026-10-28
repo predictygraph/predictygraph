@@ -1,0 +1,23 @@
+schema = 1
+name = "catppuccin-macchiato"
+dark = true
+
+[palette]
+bg = "#24273a"
+surface = "#363a4f"
+fg = "#cad3f5"
+muted = "#a5adcb"
+border = "#5b6078"
+red = "#ed8796"
+orange = "#f5a97f"
+yellow = "#eed49f"
+green = "#a6da95"
+cyan = "#8bd5ca"
+blue = "#8aadf4"
+purple = "#c6a0f6"
+
+[roles]
+accent = "purple"
+
+[shape]
+radius = 10

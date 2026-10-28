@@ -1,0 +1,44 @@
+# Blueprint: GPU box to GPU cloud
+# Converted from the Graphviz `dot` block in talks/containerdays_neocloud_story.md
+graph theme=default dir=TB route=bend rank-gap=34 node-gap=22
+css {
+  node  { text-align: left; font-size: 13px; padding: 6px 10px; }
+  group { font-size: 11px; letter-spacing: 1px; }
+  group.bare { fill: none; stroke: none; padding: 0; }
+}
+
+group tenants "TENANTS" layout=row gap=24 {
+  ns  "ResourceQuota per namespace\nlimits.nvidia.com/gpumem\nlimits.nvidia.com/gpucores" .red
+  pod "1  tenant pod\nnvidia.com/gpu\n+ gpumem + gpucores" .red
+}
+
+group cp "CONTROL PLANE" layout=row gap=18 {
+  dra "HAMi-DRA (later)\nResourceClaims\nK8s 1.34+" .cyan stroke-dasharray=5,3
+  wh  "2  webhook vgpu.hami.io\nsets schedulerName:\nhami-scheduler" .cyan
+  sch "3  hami-scheduler pod :9395\nkube-scheduler\n+ vgpu-scheduler-extender" .cyan
+  bs  "optional brain\nVolcano\nKueue / KAI" stroke-dasharray=5,3
+}
+
+group lower "" layout=row gap=28 .bare {
+  group pools "NODE POOLS" layout=grid cols=2 gap=16 {
+    nv   "4  NVIDIA nodes, gpu=on\nhami-device-plugin DaemonSet\ndevice-plugin + vgpu-monitor :9394" .green row=0 col=0
+    core "5  libvgpu.so in the pod\nvia /etc/ld.so.preload\ncaps memory, paces compute" .yellow row=1 col=0
+    oth  "Ascend / Kunlunxin / Hygon\nown limiter: vNPU-Core,\nvXPU, vDCU" .green row=1 col=1
+  }
+  group obs "OBSERVE AND SELL" layout=column gap=16 {
+    prom "6  Prometheus\n:9395 reserved\n:9394 used"
+    out  "allocation vs utilization\nKEDA scaling\nmetering, billing"
+  }
+}
+
+ns -> pod
+pod -> wh
+pod ..> dra
+wh -> sch
+sch .. bs arrow=none
+sch -> nv
+dra ..> nv
+nv -> core
+nv -> prom
+sch -> prom
+prom -> out

@@ -1,0 +1,23 @@
+schema = 1
+name = "catppuccin-frappe"
+dark = true
+
+[palette]
+bg = "#303446"
+surface = "#414559"
+fg = "#c6d0f5"
+muted = "#a5adce"
+border = "#626880"
+red = "#e78284"
+orange = "#ef9f76"
+yellow = "#e5c890"
+green = "#a6d189"
+cyan = "#81c8be"
+blue = "#8caaee"
+purple = "#ca9ee6"
+
+[roles]
+accent = "purple"
+
+[shape]
+radius = 10
