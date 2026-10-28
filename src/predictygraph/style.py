@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from dataclasses import dataclass
 
 import tinycss2
@@ -13,16 +14,7 @@ import tinycss2
 from .model import Document, Edge, Group, Item
 from .safe import MAX_VAR_LEN, number
 
-BUILTIN = """
-graph { font-family: "DejaVu Sans", sans-serif; font-size: 14px; color: #1f2937;
-        fill: none; padding: 16px; }
-node  { fill: #ffffff; stroke: #374151; stroke-width: 1.5; border-radius: 6px;
-        padding: 8px 14px; color: #111827; min-width: 40px; min-height: 28px; }
-group { fill: #f3f4f6; stroke: #9ca3af; stroke-width: 1; border-radius: 10px;
-        padding: 14px; color: #374151; font-size: 12px; font-weight: bold;
-        label-position: top; }
-edge  { stroke: #4b5563; stroke-width: 1.5; color: #374151; font-size: 11px; }
-"""
+BUILTIN = (Path(__file__).parent / "default.css").read_text()
 
 @dataclass
 class Selector:

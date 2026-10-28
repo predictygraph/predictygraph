@@ -87,9 +87,10 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines += [f"  --{k}: {v};" for k, v in pal.items()]
     lines += [f"  --{k}: {ref(v)};" for k, v in roles.items()]
     lines.append("}")
-    font = shape.get("font", "DejaVu Sans")
     radius = shape.get("radius", 6)
-    lines.append(f'graph {{ background: var(--bg); color: var(--fg); font-family: "{font}", sans-serif; }}')
+    lines.append("graph { background: var(--bg); color: var(--fg); }")
+    if "font" in shape:
+        lines.append(f'graph {{ font-family: "{shape["font"]}", sans-serif; }}')
     lines.append(f"node {{ fill: var(--node-fill); stroke: var(--node-stroke); color: var(--node-text); "
                  f"border-radius: {radius}px; }}")
     lines.append("group { fill: var(--group-fill); stroke: var(--group-stroke); color: var(--group-text); }")

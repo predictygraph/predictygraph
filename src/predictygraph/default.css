@@ -1,0 +1,16 @@
+/*
+ * SPDX-FileCopyrightText: 2026 The predictygraph Authors
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * Base layer. Cascade: default.css < theme < css in the .pdg file < --css.
+ */
+
+graph { font-family: Roboto, Arial, "Helvetica Neue", sans-serif; font-size: 14px; color: #1f2937;
+        fill: none; padding: 16px; }
+node  { fill: #ffffff; stroke: #374151; stroke-width: 1.5; border-radius: 6px;
+        padding: 8px 14px; color: #111827; min-width: 40px; min-height: 28px; }
+group { fill: #f3f4f6; stroke: #9ca3af; stroke-width: 1; border-radius: 10px;
+        padding: 14px; color: #374151; font-size: 12px; font-weight: bold;
+        label-position: top; }
+edge  { stroke: #4b5563; stroke-width: 1.5; color: #374151; font-size: 11px; }
