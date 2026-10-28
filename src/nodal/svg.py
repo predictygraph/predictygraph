@@ -71,6 +71,39 @@ class SvgRenderer:
                 # opposite-direction edges get mirrored sign so they stay apart
                 self.offset[e.id] = k if e.src <= e.dst else -k
         self.bend_level = {}
+        self.port_shift = {}
+        self._spread_ports()
+
+    def _spread_ports(self):
+        """Several edges on one side of a node: spread them symmetrically around the
+        side's middle (ordered by where they go), so the node stays visually balanced."""
+        sides: dict[tuple[str, str], list] = {}
+        for e in self.doc.edges:
+            if e.attrs.get("exit") or e.attrs.get("enter") or self.offset.get(e.id):
+                continue
+            pts, axis = self.edge_geometry(e)
+            if axis not in ("v", "h"):
+                continue
+            a, b = self.doc.items[e.src], self.doc.items[e.dst]
+            if flow_dir(lca(a, b, self.doc.root)) == "auto" or e.style.get("route", "curve") in ("straight", "ortho"):
+                continue  # ortho fan-in/out merges into a bus instead
+            i = 0 if axis == "v" else 1
+            for end, node, here, there in ((0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
+                                           (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0])):
+                side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else \
+                       ("right" if there[0] > here[0] else "left")
+                sides.setdefault((node.id, side), []).append((there[i], e.id, end, i))
+        for (nid, side), lst in sides.items():
+            if len(lst) < 2:
+                continue
+            n = self.doc.items[nid]
+            if n.attrs.get("shape", "box") in ("diamond", "circle", "ellipse") and not isinstance(n, Group):
+                continue
+            span = n.w if side in ("top", "bottom") else n.h
+            step = min(18.0, (span - 12) / (len(lst) - 1)) if span > 12 else 0.0
+            lst.sort()
+            for k, (_, eid, end, i) in enumerate(lst):
+                self.port_shift[(eid, end)] = (k - (len(lst) - 1) / 2) * step
 
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
@@ -134,6 +167,13 @@ class SvgRenderer:
             if not sep:
                 vert = not vert  # same rank: connect sideways
             p0, p1 = self._ports(e, a, b, vert, sep)
+            s0, s1 = getattr(self, "port_shift", {}).get((e.id, 0), 0.0), getattr(self, "port_shift", {}).get((e.id, 1), 0.0)
+            if vert:
+                p0, p1 = (p0[0] + s0, p0[1]), (p1[0] + s1, p1[1])
+            else:
+                p0, p1 = (p0[0], p0[1] + s0), (p1[0], p1[1] + s1)
+            if s0 or s1:
+                return [p0] + wps + [p1], ("v" if vert else "h")
             if off:
                 if vert:
                     p0, p1 = (p0[0] + off, p0[1]), (p1[0] + off, p1[1])

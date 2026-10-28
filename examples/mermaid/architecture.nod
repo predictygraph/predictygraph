@@ -1,5 +1,5 @@
 # Mermaid "architecture-beta" docs example (API in the cloud)
-graph theme=github-light dir=TB route=ortho radius=6
+graph theme=github-light dir=TB route=ortho radius=6 rank-gap=28
 
 group api "API (cloud)" layout=layered dir=LR {
   db "Database" shape=cylinder .blue

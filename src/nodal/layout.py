@@ -215,6 +215,12 @@ class LayeredLayout(Layout):
         kids = self.kids
         idx = {k.id: i for i, k in enumerate(kids)}
         edges = [(a.id, b.id, float(e.attrs.get("weight", 1))) for a, b, e in local_edges(g, self.doc)]
+        # where inside a child box does the real endpoint sit (cross axis, rel. to centre)?
+        # lets a node line up with the actual node inside a group, not the group centre
+        self.portoff = {}
+        for a, b, e in local_edges(g, self.doc):
+            self.portoff[(a.id, b.id)] = self._inner_off(self.doc.items[e.src], a, horizontal)
+            self.portoff[(b.id, a.id)] = self._inner_off(self.doc.items[e.dst], b, horizontal)
 
         # 1. break cycles with DFS in source order
         succ = defaultdict(list)
@@ -284,9 +290,12 @@ class LayeredLayout(Layout):
                 size[vid] = (0.0, 0.0)
                 rank[vid] = r
                 adj.append((prev, vid, w))
+                if prev == a:
+                    self.portoff[(a, vid)] = self.portoff.get((a, b), self.portoff.get((a, b), 0.0))
                 chain.append(vid)
                 prev = vid
             adj.append((prev, b, w))
+            self.portoff[(b, prev)] = self.portoff.get((b, a), 0.0)
             self.virtual_chains[(a, b)] = chain
         lo, hi = min(layers), max(layers)
         order = [layers.get(r, []) for r in range(lo, hi + 1)]
@@ -379,6 +388,21 @@ class LayeredLayout(Layout):
         self._store_waypoints(horizontal)
         return (total_main, cross_total) if horizontal else (cross_total, total_main)
 
+    @staticmethod
+    def _inner_off(item, child, horizontal):
+        """Cross-axis offset of `item`'s centre from the centre of `child` (its ancestor-or-self)."""
+        if item is child:
+            return 0.0
+        c = (item.y + item.h / 2) if horizontal else (item.x + item.w / 2)
+        cur = item.parent
+        while cur is not None and cur is not child:
+            c += (cur.oy + cur.y) if horizontal else (cur.ox + cur.x)
+            cur = cur.parent
+        if cur is None:
+            return 0.0
+        c += child.oy if horizontal else child.ox
+        return c - ((child.h if horizontal else child.w) / 2)
+
     def _median_pull(self, order, pos, up, down, csz, node_gap, vgap):
         def gap(a, b):
             return (vgap if a.startswith("__v") or b.startswith("__v") else node_gap)
@@ -386,8 +410,9 @@ class LayeredLayout(Layout):
             for li in (range(len(order)) if it % 2 == 0 else range(len(order) - 1, -1, -1)):
                 layer = order[li]
                 want = {}
+                po = self.portoff
                 for u in layer:
-                    ns = [(pos[v], w) for v, w in up[u] + down[u]]
+                    ns = [(pos[v] + po.get((v, u), 0.0) - po.get((u, v), 0.0), w) for v, w in up[u] + down[u]]
                     if ns:
                         ns.sort()
                         tot = sum(w for _, w in ns)
