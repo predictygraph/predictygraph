@@ -68,6 +68,7 @@ class Edge:
     attrs: dict[str, str] = field(default_factory=dict)
     scope: Group | None = None
     style: dict[str, str] = field(default_factory=dict)
+    label_style: dict[str, str] = field(default_factory=dict)
     index: int = 0
     waypoints: list[tuple[float, float]] = field(default_factory=list)
     wp_owner: Group | None = None
@@ -83,6 +84,7 @@ class Document:
     stylesheets: list[tuple[str, str]] = field(default_factory=list)  # (css text, base dir)
     items: dict[str, Item] = field(default_factory=dict)
     base_dir: str = "."
+    allow_outside: bool = False  # let image=/css "..." read files outside base_dir
 
     def walk(self, g: Group | None = None):
         g = g or self.root

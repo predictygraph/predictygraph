@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 import re
 
+from .safe import NUM, numbers
+
 FLOW_MODES = ("forward", "reverse", "both", "auto")
 BORDER_MODES = ("march", "pulse", "glow")
 
@@ -17,15 +19,16 @@ BORDER_MODES = ("march", "pulse", "glow")
 def seconds(v, default: float = 1.0) -> float:
     if v is None:
         return default
-    m = re.match(r"\s*([\d.]+)\s*(ms|s)?\s*$", str(v))
+    m = re.match(rf"\s*({NUM})\s*(ms|s)?\s*$", str(v))
     if not m:
         return default
     n = float(m.group(1))
-    return max(0.05, n / 1000 if m.group(2) == "ms" else n)
+    n = n / 1000 if m.group(2) == "ms" else n
+    return min(3600.0, max(0.05, n)) if n == n else default
 
 
 def dash_len(dash: str) -> float:
-    nums = [float(x) for x in re.findall(r"[\d.]+", dash or "")]
+    nums = [abs(x) for x in numbers(dash)]
     if not nums:
         return 0.0
     if len(nums) % 2:
@@ -37,6 +40,10 @@ class Track:
     """A looping linear keyframe track over evenly spaced keyframes."""
 
     def __init__(self, attr: str, values: list[float], dur: float):
+        if not values:
+            raise ValueError("track needs at least one value")
+        values = values if len(values) > 1 else values * 2
+        dur = dur if dur > 0 else 1.0
         self.attr, self.values, self.dur = attr, values, dur
 
     def at(self, t: float) -> float:

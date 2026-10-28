@@ -23,6 +23,8 @@ def main(
     fps: int = typer.Option(20, "--fps", help="APNG frames per second"),
     seconds: float | None = typer.Option(None, "--seconds", help="APNG length (default: one full loop)"),
     scale: float = typer.Option(2.0, "--scale", help="APNG pixel scale"),
+    allow_outside: bool = typer.Option(False, "--allow-outside",
+                                       help="Let image= and css \"...\" read files outside the input's directory"),
 ) -> None:
     if themes:
         typer.echo("\n".join(list_themes()))
@@ -32,7 +34,7 @@ def main(
         raise typer.Exit(2)
     target = out or src.with_suffix(".svg")
     try:
-        scene = scene_from_file(src, [p.read_text() for p in css], theme)
+        scene = scene_from_file(src, [p.read_text() for p in css], theme, allow_outside)
         if check:
             typer.echo(f"{src}: ok")
             return

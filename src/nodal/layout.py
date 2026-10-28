@@ -15,14 +15,14 @@ def size_node(n: Node, doc: Document) -> None:
     fs = px(st.get("font-size"), 14)
     bold = st.get("font-weight", "normal") in ("bold", "600", "700", "800", "900")
     label = n.label if n.label is not None else n.id
-    n.text_w, n.text_h, n.text_lines = measure(label, st.get("font-family", "sans-serif"), fs, bold)
+    n.text_w, n.text_h, n.text_lines = measure(label, st.get("font-family", "sans-serif"), fs, bold) if label else (0.0, 0.0, [])
     pt, pr, pb, pl = box4(st.get("padding"), 8)
     shape = n.attrs.get("shape")
     if "image" in n.attrs:
-        img = load_image(n.attrs["image"], doc.base_dir)
+        img = load_image(n.attrs["image"], doc.base_dir, doc.allow_outside)
         iw, ih = img["w"], img["h"]
         if "img-width" in n.attrs or "img-height" in n.attrs:
-            tw, th = px(n.attrs.get("img-width"), 0), px(n.attrs.get("img-height"), 0)
+            tw, th = max(0.0, px(n.attrs.get("img-width"), 0)), max(0.0, px(n.attrs.get("img-height"), 0))
             if tw and th:
                 iw, ih = tw, th
             elif tw:
@@ -47,7 +47,7 @@ def size_node(n: Node, doc: Document) -> None:
         n.w = n.text_w + pl + pr
         n.h = n.text_h + pt + pb
         if shape in ("circle", "square"):
-            d = max(n.text_w, n.text_h) + max(pl, pt) * 1.2
+            d = max(n.text_w, n.text_h) + max(pl, pt) * 1.2 if n.text_lines else 16.0
             n.w = n.h = d
         elif shape in ("ellipse",):
             n.w, n.h = n.w * 1.25, n.h * 1.3
@@ -58,8 +58,12 @@ def size_node(n: Node, doc: Document) -> None:
         elif shape == "cylinder":
             n.h += 12
     n.attrs["shape"] = shape
-    n.w = max(n.w, px(st.get("min-width"), 0), px(n.attrs.get("width"), 0))
-    n.h = max(n.h, px(st.get("min-height"), 0), px(n.attrs.get("height"), 0))
+    explicit = (px(n.attrs.get("width"), 0), px(n.attrs.get("height"), 0))
+    mins = (0.0, 0.0) if shape in ("circle", "square") and not n.text_lines else \
+        (px(st.get("min-width"), 0), px(st.get("min-height"), 0))
+    n.w, n.h = max(n.w, mins[0], explicit[0]), max(n.h, mins[1], explicit[1])
+    if shape in ("circle", "square"):
+        n.w = n.h = max(n.w, n.h)
 
 
 # ---------------------------------------------------------------- helpers
@@ -362,7 +366,13 @@ class LayeredLayout(Layout):
 
         # 6. main-axis coordinates (router may ask for wider gaps: g.extra_gap[rank])
         rank_thick = [max((msz(u) for u in layer), default=0) for layer in order]
-        extra = getattr(g, "extra_gap", {})
+        extra = dict(getattr(g, "extra_gap", {}))
+        # labelled edges need a run long enough to carry the label beside the bus
+        for a, b, e in local_edges(g, self.doc):
+            if e.label and a.id in rank and b.id in rank:
+                lh = px(e.style.get("font-size"), 11) * 1.25 * (e.label.count("\n") + 1) + 10
+                r = min(rank[a.id], rank[b.id]) - lo
+                extra[r] = max(extra.get(r, 0.0), lh)
         main = 0.0
         main_pos = []
         for ri, t in enumerate(rank_thick):

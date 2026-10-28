@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from .model import Document, Edge, Group, Node
+from .safe import MAX_EDGES, safe_path
 
 
 class NodalSyntaxError(ValueError):
@@ -17,7 +18,7 @@ TOKEN_RE = re.compile(
     r"""
     (?P<ws>[ \t]+)
   | (?P<string>"(?:[^"\\]|\\.)*")
-  | (?P<arrow><?[-=.]+>|<[-=.]+|[-=.]{2,})
+  | (?P<arrow><?[-=.]{1,64}>|<[-=.]{1,64}|[-=.]{2,64})
   | (?P<attr>[A-Za-z_][\w-]*=(?:"(?:[^"\\]|\\.)*"|[^\s{}]+))
   | (?P<cls>\.[A-Za-z_][\w-]*)
   | (?P<ident>[A-Za-z_][\w-]*)
@@ -102,9 +103,9 @@ def parse_arrow(tok: str) -> tuple[str, str]:
 
 
 class Parser:
-    def __init__(self, base_dir: str = "."):
+    def __init__(self, base_dir: str = ".", allow_outside: bool = False):
         self.root = Group(id="__root__", kind="graph")
-        self.doc = Document(root=self.root, base_dir=base_dir)
+        self.doc = Document(root=self.root, base_dir=base_dir, allow_outside=allow_outside)
         self.stack = [self.root]
 
     @property
@@ -174,8 +175,8 @@ class Parser:
             self.root.attrs.update(attrs)
             return
         if head == "css" and len(toks) == 2 and toks[1][0] == "string":
-            path = Path(self.doc.base_dir) / unquote(toks[1][1])
-            self.doc.stylesheets.append((path.read_text(), str(path.parent)))
+            path = safe_path(self.doc.base_dir, unquote(toks[1][1]), self.doc.allow_outside)
+            self.doc.stylesheets.append((path.read_text(encoding="utf-8"), str(path.parent)))
             return
         if head == "default" and len(toks) >= 2 and toks[1][1] in ("node", "edge", "group"):
             _, classes, attrs = self._tail(toks, 2, lineno)
@@ -237,6 +238,9 @@ class Parser:
         for a in groups:
             for nid in a:
                 self._get_node(nid, lineno)
+        count = sum(len(s) * len(d) for s, d in zip(groups, groups[1:]))
+        if len(self.doc.edges) + count > MAX_EDGES:
+            raise NodalSyntaxError(f"too many edges (limit {MAX_EDGES})", lineno)
         for (srcs, dsts), (arrow, body) in zip(zip(groups, groups[1:]), arrows):
             for s in srcs:
                 for d in dsts:
@@ -258,7 +262,7 @@ class Parser:
             if m:  # raw inline css block
                 buf, depth, rest = [], 1, m.group(1)
                 while True:
-                    for ch in rest:
+                    for j, ch in enumerate(rest):
                         if ch == "{":
                             depth += 1
                         elif ch == "}":
@@ -274,6 +278,10 @@ class Parser:
                         raise NodalSyntaxError("unterminated css block", lineno)
                     rest = lines[i]
                 self.doc.stylesheets.append(("".join(buf), self.doc.base_dir))
+                tail = strip_comment(rest[j + 1:]).strip()
+                if tail:  # statements after the closing brace on the same line
+                    for stmt in split_statements(tokenize(tail, i + 1)):
+                        self.statement(stmt, i + 1)
                 i += 1
                 continue
             if stripped:
@@ -289,10 +297,10 @@ class Parser:
         return self.doc
 
 
-def parse(text: str, base_dir: str = ".") -> Document:
-    return Parser(base_dir).parse(text)
+def parse(text: str, base_dir: str = ".", allow_outside: bool = False) -> Document:
+    return Parser(base_dir, allow_outside).parse(text)
 
 
-def parse_file(path: str | Path) -> Document:
+def parse_file(path: str | Path, allow_outside: bool = False) -> Document:
     p = Path(path)
-    return parse(p.read_text(encoding="utf-8"), str(p.parent))
+    return parse(p.read_text(encoding="utf-8"), str(p.parent), allow_outside)

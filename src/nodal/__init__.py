@@ -71,16 +71,17 @@ def build_scene(doc, extra_css: list[str] | None = None, theme: str | None = Non
     return scene
 
 
-def scene_from_file(path: str | Path, extra_css: list[str] | None = None, theme: str | None = None) -> Scene:
-    return build_scene(parse_file(path), extra_css, theme)
+def scene_from_file(path: str | Path, extra_css: list[str] | None = None, theme: str | None = None,
+                    allow_outside: bool = False) -> Scene:
+    return build_scene(parse_file(path, allow_outside), extra_css, theme)
 
 
 def render(text: str, base_dir: str = ".", extra_css: list[str] | None = None, theme: str | None = None,
-           t: float | None = None) -> str:
+           t: float | None = None, allow_outside: bool = False) -> str:
     """SVG text. t=None: animated (SMIL) SVG; t=seconds: static frame at that time."""
-    return write_svg(build_scene(parse(text, base_dir), extra_css, theme), t)
+    return write_svg(build_scene(parse(text, base_dir, allow_outside), extra_css, theme), t)
 
 
 def render_file(path: str | Path, extra_css: list[str] | None = None, theme: str | None = None,
-                t: float | None = None) -> str:
-    return write_svg(scene_from_file(path, extra_css, theme), t)
+                t: float | None = None, allow_outside: bool = False) -> str:
+    return write_svg(scene_from_file(path, extra_css, theme, allow_outside), t)
