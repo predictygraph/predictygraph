@@ -270,7 +270,7 @@ class SvgRenderer:
             r = max(r, 10)
         if shape == "pill":
             r = h / 2
-        if shape in ("box", "round", "pill", "note"):
+        if shape in ("box", "round", "pill", "note", "square"):
             return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{r:g}" {common}/>'
         if shape in ("circle", "ellipse"):
             return f'<ellipse cx="{n.cx:.1f}" cy="{n.cy:.1f}" rx="{w/2:.1f}" ry="{h/2:.1f}" {common}/>'

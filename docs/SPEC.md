@@ -77,7 +77,10 @@ Graph-wide defaults: `graph edge-width=1.5 arrow=end head=triangle route=curve` 
 
 Attributes:
 
-- `shape=box|round|pill|circle|ellipse|diamond|hexagon|cylinder|note|none|image`
+- `shape=box|square|round|pill|circle|ellipse|diamond|hexagon|cylinder|note|none|image`
+  (`square` = box forced to equal width and height)
+
+Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's outer box.
 - `image=path.svg|path.png` — makes the node an image leaf. Default `shape=image`
   (no box, label below). With an explicit shape the image sits inside the box above the label.
 - `img-width=48 img-height=48` — image size (defaults: intrinsic, max 96px).

@@ -1,0 +1,11 @@
+# Edges can end on a group box itself, or on square nodes
+graph dir=LR route=ortho radius=8
+
+sched "HAMi scheduler" shape=square
+group pool "GPU pool" layout=grid cols=2 {
+  g0 "A100"; g1 "A100"; g2 "H100"; g3 "L40S"
+}
+prom "Prometheus" shape=square
+
+sched ==> pool "bind"
+pool -> prom "metrics"

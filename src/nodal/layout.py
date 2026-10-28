@@ -46,7 +46,7 @@ def size_node(n: Node, doc: Document) -> None:
         shape = shape or "box"
         n.w = n.text_w + pl + pr
         n.h = n.text_h + pt + pb
-        if shape in ("circle",):
+        if shape in ("circle", "square"):
             d = max(n.text_w, n.text_h) + max(pl, pt) * 1.2
             n.w = n.h = d
         elif shape in ("ellipse",):
