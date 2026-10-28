@@ -432,13 +432,13 @@ class LayeredLayout(Layout):
                 for i in range(1, len(layer)):
                     mn = new[i - 1] + (csz(layer[i - 1]) + csz(layer[i])) / 2 + gap(layer[i - 1], layer[i])
                     new[i] = max(new[i], mn)
-                # shift block left toward desired mean to avoid drifting right
+                # shift the packed block by the median residual (L1 optimum): when a parent
+                # has an odd number of children, the middle child lands exactly under it
                 if layer:
-                    excess = sum(n - want[u] for n, u in zip(new, layer)) / len(layer)
-                    new = [n - max(0.0, excess) for n in new]
-                    for i in range(1, len(layer)):
-                        mn = new[i - 1] + (csz(layer[i - 1]) + csz(layer[i])) / 2 + gap(layer[i - 1], layer[i])
-                        new[i] = max(new[i], mn)
+                    res = sorted(want[u] - n for n, u in zip(new, layer))
+                    m = len(res) // 2
+                    shift = res[m] if len(res) % 2 else (res[m - 1] + res[m]) / 2
+                    new = [n + shift for n in new]
                 for u, n in zip(layer, new):
                     pos[u] = n
         return pos

@@ -35,3 +35,20 @@ def test_render_mixed_layouts_and_css():
     assert 'fill="#ff0000"' in svg
     assert 'stroke-width="5"' in svg and 'stroke-width="3"' in svg
     assert "lbl" in svg
+
+
+def test_spine_is_centred_over_odd_fanout():
+    import re
+    svg = render('graph dir=TB\nA "Christmas"\nB "Go shopping"\nC "Let me think" shape=diamond\n'
+                 'D "Laptop"\nE "iPhone"\nF "Car"\nA -> B -> C\nC -> D\nC -> E\nC -> F\n')
+
+    def cx(nid):
+        body = svg.split(f'<g id="{nid}"', 1)[1].split("</g>", 1)[0]
+        m = re.search(r'<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)"', body)
+        if m:
+            return float(m[1]) + float(m[2]) / 2
+        xs = [float(p.split(",")[0]) for p in re.search(r'points="([^"]+)"', body)[1].split()]
+        return (min(xs) + max(xs)) / 2
+
+    centres = [cx(n) for n in "ABCE"]
+    assert max(centres) - min(centres) < 1.0
