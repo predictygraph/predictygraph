@@ -4,7 +4,7 @@
 
 [project]
 name = "predictygraph"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Predictable graphs: a readable, CSS-styled diagram DSL with per-group layouts, rendered to SVG/APNG"
 authors = [{name = "Reza Jelveh", email = "git@jelveh.me"}]
 dependencies = ["tinycss2>=1.5.1", "typer>=0.26.8", "pillow>=11.0.0"]
@@ -22,6 +22,9 @@ pdg = "predictygraph.cli:app"
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.version]
+source = "scm"
 
 [dependency-groups]
 dev = ["pytest>=9.1.1"]
