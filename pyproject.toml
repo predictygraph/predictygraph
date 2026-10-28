@@ -8,6 +8,9 @@ requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
 
+[project.optional-dependencies]
+apng = ["cairosvg>=2.7"]
+
 [project.scripts]
 nodal = "nodal.cli:app"
 

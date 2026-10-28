@@ -5,6 +5,7 @@ import math
 from xml.sax.saxutils import escape, quoteattr
 
 from .layout import direct_child
+from .anim import BORDER_MODES, Animator, Track, dash_len, inject, seconds
 from .model import Document, Edge, Group, Node
 from .style import box4, px
 
@@ -52,10 +53,12 @@ def port(n, side):
 
 
 class SvgRenderer:
-    def __init__(self, doc: Document):
+    def __init__(self, doc: Document, t: float | None = None):
+        """t=None: animated SVG (SMIL); t=float: static frame at that time."""
         self.doc = doc
         self.out: list[str] = []
         self.defs: dict[str, str] = {}
+        self.anim = Animator(t)
 
     # ------------------------------------------------------------ edges
     def prepare_edges(self):
@@ -335,7 +338,34 @@ class SvgRenderer:
         if dash:
             attrs.append(f'stroke-dasharray="{dash}"')
         cls = " ".join(["nodal-edge"] + e.classes)
-        self.out.append(f'<g id="{e.id}" class="{cls}"><path {" ".join(attrs)}/>')
+        d_attr = attrs[0]
+        flow = st.get("flow", "none")
+        if flow == "auto":
+            flow = {"end": "forward", "start": "reverse", "both": "both"}.get(arrow, "forward")
+        if flow in ("forward", "reverse", "both"):
+            cls += f" nodal-flow nodal-flow-{flow}"
+        self.out.append(f'<g id="{e.id}" class="{cls}">')
+        if flow not in ("forward", "reverse", "both"):
+            self.out.append(f'<path {" ".join(attrs)}/>')
+        else:
+            # flows need a dotted pattern to be visible; default: round dots
+            fdash = dash or f"0.1 {max(6.0, width * 4):g}"
+            fwidth = width if dash else max(width * 1.8, 2.5)
+            base = [a for a in attrs if not a.startswith(("stroke-dasharray", "stroke-linecap", "stroke-width"))]
+            dur = seconds(st.get("flow-speed"), 1.2)
+            if not dash:  # faint guide line under the moving dots
+                self.out.append(f'<path {d_attr} fill="none" stroke="{color}" stroke-width="{max(0.75, width * 0.5):g}" '
+                                f'stroke-opacity="0.3"/>')
+            dirs = ["forward", "reverse"] if flow == "both" else [flow]
+            for k, fd in enumerate(dirs):
+                pat = fdash
+                el = (f'<path {" ".join(base)} class="nodal-flow-{fd}" stroke-width="{fwidth:g}" '
+                      f'stroke-dasharray="{pat}" stroke-linecap="round"/>')
+                tracks = Animator.flow_tracks(pat, dur, fd == "reverse")
+                if flow == "both" and k == 1:
+                    L = dash_len(pat)
+                    tracks = [Track(tr.attr, [v + L / 2 for v in tr.values], tr.dur) for tr in tracks]
+                self.out.append(inject(el, *self.anim.apply(tracks)))
         for tip, dvec in heads:
             self.out.append(self.head_shape(head, tip, dvec, hl, color, width))
         if e.label:
@@ -418,6 +448,23 @@ class SvgRenderer:
             self.defs["nodal-shadow"] = ('<filter id="nodal-shadow" x="-20%" y="-20%" width="140%" height="150%">'
                                          '<feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.18"/></filter>')
         r = px(st.get("border-radius"), 0)
+        el = self._shape_el(n, shape, st, common, fill, stroke, sw, r)
+        mode = st.get("border", "none")
+        if mode in BORDER_MODES and el and stroke != "none":
+            dur = seconds(st.get("border-speed"), 1.6)
+            dash = st.get("stroke-dasharray")
+            if mode == "march" and not dash:
+                dash = f"{max(4.0, sw * 4):g} {max(3.0, sw * 3):g}"
+                el = inject(el, {"stroke-dasharray": dash}, "")
+            if mode == "glow":
+                halo = inject(el, {"fill": "none", "stroke-dasharray": "none", "filter": "none"}, "")
+                halo = inject(halo, *self.anim.apply(Animator.border_tracks("glow", sw, dash, dur)))
+                return f'<g class="nodal-border-glow">{halo}</g>' + el
+            el = inject(el, *self.anim.apply(Animator.border_tracks(mode, sw, dash, dur)))
+        return el
+
+    def _shape_el(self, n, shape, st, common, fill, stroke, sw, r):
+        x, y, w, h = n.ax, n.ay, n.w, n.h
         if shape == "round":
             r = max(r, 10)
         if shape == "pill":
@@ -512,10 +559,18 @@ class SvgRenderer:
         if self.defs:
             head.append("<defs>" + "".join(self.defs.values()) + "</defs>")
         if bg:
-            head.append(f'<rect width="100%" height="100%" fill="{bg}"/>')
+            head.append(f'<rect x="0" y="0" width="{w:.1f}" height="{h:.1f}" fill="{bg}"/>')
         _ = pad
         return "\n".join(head + body_groups + edges_out + body_nodes + ["</svg>"]) + "\n"
 
 
-def render_svg(doc: Document) -> str:
-    return SvgRenderer(doc).render()
+def render_svg(doc: Document, t: float | None = None) -> str:
+    return SvgRenderer(doc, t).render()
+
+
+def loop_seconds(doc: Document) -> float:
+    """Length of one full animation loop (0 if the diagram is static)."""
+    from .anim import loop_length
+    r = SvgRenderer(doc, 0.0)
+    r.render()
+    return loop_length(r.anim.durations) if r.anim.durations else 0.0

@@ -52,3 +52,21 @@ def test_spine_is_centred_over_odd_fanout():
 
     centres = [cx(n) for n in "ABCE"]
     assert max(centres) - min(centres) < 1.0
+
+
+def test_animation_svg_and_frames():
+    src = 'graph dir=LR\na border=march\nb border=pulse\nc border=glow\na -> b flow=forward\nb <-> c flow=auto\n'
+    svg = render(src)
+    assert svg.count("<animate ") >= 5
+    assert "nodal-flow-forward" in svg and "nodal-flow-reverse" in svg
+    f0, f1 = render(src, t=0.0), render(src, t=0.4)
+    assert "<animate" not in f0 and f0 != f1
+    plain = render("a -> b\n")
+    assert "<animate" not in plain and "nodal-flow" not in plain
+
+
+def test_loop_length():
+    from nodal.anim import loop_length
+    assert loop_length([1.2, 0.8]) == 2.4
+    assert loop_length([]) == 1.0
+    assert loop_length([7, 11]) == 11  # LCM 77s > cap -> longest track

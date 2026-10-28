@@ -1,0 +1,14 @@
+# Animation showcase: flowing edges in each direction, animated borders
+graph theme=nord dir=LR route=bend
+
+client "client" border=pulse
+api "API gateway" border=march
+svc "service"
+db "database" shape=cylinder border=glow .green
+cache "cache" .yellow
+
+client -> api flow=forward
+api -> svc flow=forward flow-speed=0.8s
+svc <-> db flow=both
+svc <- cache flow=auto           # follows the arrow: cache -> svc
+api .. cache flow=reverse arrow=none

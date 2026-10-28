@@ -137,14 +137,48 @@ Supported properties:
 - Custom properties `--name: value` and `var(--name)` are supported, so slidr themes
   can share palettes.
 
-## 7. Output contract
+## 7. Animation
+
+Animation is optional and never changes layout. The first frame (t=0) is always the
+complete diagram, so static renderers (rsvg, cairosvg, WeasyPrint, PDF) stay correct.
+
+**Edge flows** — a moving dotted pattern along the edge:
+
+- `flow=forward` — dots travel source → target
+- `flow=reverse` — target → source
+- `flow=both` — two interleaved streams, one each way
+- `flow=auto` — follow the arrowheads (`->` forward, `<-` reverse, `<->` both)
+- `flow-speed=1.2s` — time for one dash period (default 1.2s; `ms` also accepted)
+
+Without an explicit dash a flow draws round dots over a faint guide line; with a dashed
+body (`..>`, `stroke-dasharray=`) that dash pattern is what moves.
+
+**Animated borders** on nodes and groups:
+
+- `border=march` — dashed outline that crawls around the shape ("marching ants")
+- `border=pulse` — outline breathes in width and opacity
+- `border=glow` — a halo ring expands and fades behind the shape
+- `border-speed=1.6s` — cycle time
+
+All four keys work as attributes, in `default node|edge|group`, on the `graph` line
+(`flow-speed` only) and as CSS properties, e.g. `edge.hot { flow: forward; flow-speed: .6s; }`.
+SVG output uses SMIL `<animate>` (plays in browsers); the same tracks drive APNG frames.
+
+**Output modes (CLI):**
+
+- `nodal x.nod` — animated SVG
+- `nodal x.nod --static` / `--at 0.4` — SVG frozen at t=0 / t=0.4s
+- `nodal x.nod -o x.png` — animated PNG (APNG), one seamless loop (LCM of all cycle
+  times, capped at 12s); `--fps 20 --scale 2 --seconds N` tune it. Needs `nodal[apng]`.
+
+## 8. Output contract
 
 The renderer emits a standalone SVG 1.1 file. Every element carries
 `class="nodal-node <classes>"` and `id`, styling is also written as presentation
 attributes so the file looks the same in rsvg, Inkscape, WeasyPrint, PowerPoint or
 a browser. Text width is measured with the actual font file (no browser).
 
-## 8. Example
+## 9. Example
 
 ```nod
 graph dir=LR balance=median route=ortho edge-width=1.5
