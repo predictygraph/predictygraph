@@ -70,6 +70,13 @@ Per-edge attributes override arrow defaults:
     into a straight diagonal.
   - `ortho`: right angles; `radius=` rounds the corners (default 6).
 - `radius=N`, `stub=N` — bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
+- `exit=top|bottom|left|right`, `enter=...` — pin the side an edge leaves/enters (port at the
+  side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner.
+
+Automatic routing rules (layered layouts):
+- Edges between the same two nodes are offset in parallel; `A <-> B` draws one double-headed edge.
+- Ortho edges sharing a target (fan-in) or source (fan-out) turn at one common level, forming a bus.
+- Rectangular nodes that overlap on the cross axis are joined by a single straight line (no jog).
 - `weight=N` — how strongly a layered layout keeps the edge short/straight (default 1)
 - `constraint=false` — the edge is drawn but ignored by layout
 

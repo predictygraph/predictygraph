@@ -12,5 +12,6 @@ c5 "5" shape=circle at=330,0 .blue
 c6 "6" shape=circle at=390,0 .blue
 
 c1 -- c2 -- c5 -- c6 .blue
-c2 -- c3 -- c4 .green
-c4 -- c5 .green
+c2 -- c3 .green exit=bottom enter=left
+c3 -- c4 .green
+c4 -- c5 .green exit=right enter=bottom

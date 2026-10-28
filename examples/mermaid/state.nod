@@ -9,7 +9,6 @@ stop "" shape=circle width=18 height=18 .solid
 
 start -> Still
 Still -> stop
-Still -> Moving
-Moving -> Still
+Still <-> Moving
 Moving -> Crash
 Crash -> stop
