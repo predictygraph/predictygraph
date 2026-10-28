@@ -1,11 +1,9 @@
-"""Animation support: one description, two outputs.
+"""Animation tracks: format-independent keyframe descriptions.
 
-Every animated property is a looping keyframe track ``(attr, values, dur)``.
-
-* Animated SVG (``t is None``): the base attribute is the first keyframe (so static
-  renderers show a complete diagram) and a SMIL ``<animate>`` child drives it.
-* Frame at time ``t`` (APNG / stills): the value is interpolated and written as a
-  plain attribute, no SMIL. Frames are rasterised and stitched into an APNG.
+Every animated property is a looping linear keyframe track ``(attr, values, dur)``
+attached to a Scene IR element. The first keyframe always equals the static value, so
+writers that cannot animate (PDF, PNG, ODP) just use it. Writers that can animate
+(SVG via SMIL) emit the track; frame writers (APNG) sample it with ``Track.at(t)``.
 """
 from __future__ import annotations
 
@@ -48,52 +46,26 @@ class Track:
         f = ph - i
         return vs[i] + (vs[i + 1] - vs[i]) * f
 
-    def smil(self) -> str:
-        vals = ";".join(f"{v:g}" for v in self.values)
-        return (f'<animate attributeName="{self.attr}" values="{vals}" dur="{self.dur:g}s" '
-                f'repeatCount="indefinite"/>')
+    def shifted(self, delta: float) -> "Track":
+        return Track(self.attr, [v + delta for v in self.values], self.dur)
 
 
-class Animator:
-    """Collects tracks per element and emits either SMIL or frame values."""
+def flow_tracks(dash: str, dur: float, reverse: bool) -> list[Track]:
+    L = dash_len(dash) or 10.0
+    # offset L -> 0 moves the dash pattern towards the path's end
+    return [Track("stroke-dashoffset", [0.0, L] if reverse else [L, 0.0], dur)]
 
-    def __init__(self, t: float | None):
-        self.t = t
-        self.durations: list[float] = []
 
-    @property
-    def animated(self) -> bool:
-        return self.t is None
-
-    def apply(self, tracks: list[Track]) -> tuple[dict[str, str], str]:
-        """-> (attribute overrides, SMIL children)."""
-        attrs, kids = {}, []
-        for tr in tracks:
-            self.durations.append(tr.dur)
-            v = tr.values[0] if self.t is None else tr.at(self.t)
-            attrs[tr.attr] = f"{v:.2f}".rstrip("0").rstrip(".") or "0"
-            if self.t is None:
-                kids.append(tr.smil())
-        return attrs, "".join(kids)
-
-    # ---- presets --------------------------------------------------------
-    @staticmethod
-    def flow_tracks(dash: str, dur: float, reverse: bool) -> list[Track]:
-        L = dash_len(dash) or 10.0
-        # offset L -> 0 moves the dash pattern towards the path's end
-        return [Track("stroke-dashoffset", [0.0, L] if reverse else [L, 0.0], dur)]
-
-    @staticmethod
-    def border_tracks(mode: str, sw: float, dash: str, dur: float) -> list[Track]:
-        if mode == "march":
-            return [Track("stroke-dashoffset", [dash_len(dash) or 10.0, 0.0], dur)]
-        if mode == "pulse":
-            return [Track("stroke-opacity", [1.0, 0.35, 1.0], dur),
-                    Track("stroke-width", [sw, sw * 2.2, sw], dur)]
-        if mode == "glow":  # applied to a halo copy behind the shape
-            return [Track("stroke-width", [sw, sw + 10, sw + 10], dur),
-                    Track("stroke-opacity", [0.7, 0.0, 0.0], dur)]
-        return []
+def border_tracks(mode: str, sw: float, dash: str | None, dur: float) -> list[Track]:
+    if mode == "march":
+        return [Track("stroke-dashoffset", [dash_len(dash) or 10.0, 0.0], dur)]
+    if mode == "pulse":
+        return [Track("stroke-opacity", [1.0, 0.35, 1.0], dur),
+                Track("stroke-width", [sw, sw * 2.2, sw], dur)]
+    if mode == "glow":  # applied to a halo copy behind the shape
+        return [Track("stroke-width", [sw, sw + 10, sw + 10], dur),
+                Track("stroke-opacity", [0.7, 0.0, 0.0], dur)]
+    return []
 
 
 def loop_length(durations: list[float], cap: float = 12.0) -> float:
@@ -106,20 +78,3 @@ def loop_length(durations: list[float], cap: float = 12.0) -> float:
         l = l * c // math.gcd(l, c)
     lcm = l / 100
     return lcm if lcm <= cap else min(max(durations), cap)
-
-
-def inject(elem: str, attrs: dict[str, str], kids: str) -> str:
-    """Override attributes on the first tag of `elem` and append SMIL children to it."""
-    m = re.match(r"\s*<(\w+)([^>]*?)(/?)>", elem)
-    if not m:
-        return elem
-    tag, body, selfclose = m.group(1), m.group(2), m.group(3)
-    for k, v in attrs.items():
-        if re.search(rf'\s{re.escape(k)}="[^"]*"', body):
-            body = re.sub(rf'(\s{re.escape(k)}=")[^"]*(")', rf"\g<1>{v}\g<2>", body)
-        else:
-            body += f' {k}="{v}"'
-    rest = elem[m.end():]
-    if selfclose:
-        return f"<{tag}{body}>{kids}</{tag}>" + rest if kids else f"<{tag}{body}/>" + rest
-    return f"<{tag}{body}>{kids}" + rest

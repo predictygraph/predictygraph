@@ -1,11 +1,11 @@
-"""nodal CLI: .nod -> .svg (animated or static) or animated .png (APNG)."""
+"""nodal CLI: .nod -> Scene IR -> .svg (animated or static) or .png (APNG)."""
 from __future__ import annotations
 
 from pathlib import Path
 
 import typer
 
-from . import list_themes, load_file, render_file
+from . import list_themes, scene_from_file, write_apng, write_svg
 
 app = typer.Typer(add_completion=False, help="Render Nodal diagrams to SVG or APNG.")
 
@@ -17,7 +17,7 @@ def main(
     css: list[Path] = typer.Option([], "--css", help="Extra stylesheet(s), applied after the file's own"),
     theme: str | None = typer.Option(None, "--theme", help="Theme name or .toml path (overrides graph theme=)"),
     themes: bool = typer.Option(False, "--list-themes", help="List bundled themes and exit"),
-    check: bool = typer.Option(False, "--check", help="Parse and lay out only; report errors"),
+    check: bool = typer.Option(False, "--check", help="Parse, lay out and route only; report errors"),
     static: bool = typer.Option(False, "--static", help="SVG without animation (first frame)"),
     at: float | None = typer.Option(None, "--at", help="SVG frozen at this time (seconds)"),
     fps: int = typer.Option(20, "--fps", help="APNG frames per second"),
@@ -31,20 +31,17 @@ def main(
         typer.echo("missing input file", err=True)
         raise typer.Exit(2)
     target = out or src.with_suffix(".svg")
-    extra = [p.read_text() for p in css]
     try:
+        scene = scene_from_file(src, [p.read_text() for p in css], theme)
+        if check:
+            typer.echo(f"{src}: ok")
+            return
         if target.suffix.lower() in (".png", ".apng"):
-            from .apng import ApngExporter
-            if check:
-                load_file(src, extra, theme)
-            else:
-                ApngExporter(load_file(src, extra, theme), fps, scale, seconds).save(target)
+            write_apng(scene, target, fps, scale, seconds)
         else:
             t = at if at is not None else (0.0 if static else None)
-            svg = render_file(src, extra, theme, t)
-            if not check:
-                target.write_text(svg, encoding="utf-8")
+            target.write_text(write_svg(scene, t), encoding="utf-8")
     except (ValueError, OSError, RuntimeError) as exc:
         typer.echo(f"{src}: {exc}", err=True)
         raise typer.Exit(1) from exc
-    typer.echo(f"{src}: ok" if check else str(target))
+    typer.echo(str(target))

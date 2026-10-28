@@ -360,14 +360,16 @@ class LayeredLayout(Layout):
         if balance == "median":
             pos = self._median_pull(order, pos, up, down, csz, node_gap, vgap)
 
-        # 6. main-axis coordinates
+        # 6. main-axis coordinates (router may ask for wider gaps: g.extra_gap[rank])
         rank_thick = [max((msz(u) for u in layer), default=0) for layer in order]
+        extra = getattr(g, "extra_gap", {})
         main = 0.0
         main_pos = []
-        for t in rank_thick:
+        for ri, t in enumerate(rank_thick):
             main_pos.append(main)
-            main += t + rank_gap
-        total_main = main - rank_gap
+            main += t + rank_gap + extra.get(ri, 0.0)
+        total_main = main - rank_gap - extra.get(len(rank_thick) - 1, 0.0)
+        self.rank_index = {u: ri for ri, layer in enumerate(order) for u in layer if not u.startswith("__v")}
         minc = min((pos[u] - csz(u) / 2 for layer in order for u in layer), default=0)
         self.virtual_pos = {}
         for ri, layer in enumerate(order):
@@ -476,7 +478,7 @@ def layout_group(g: Group, doc: Document) -> None:
         lw, g.label_h, _ = measure(g.label, g.style.get("font-family", "sans-serif"), fs,
                                    g.style.get("font-weight", "normal") in ("bold", "700"))
         g.label_h += 6
-    inner_w = max(cw, lw)
+    inner_w = max(cw, lw) + getattr(g, "extra_w", 0.0)  # extra_w: room requested for the title
     top = g.style.get("label-position", "top") != "bottom"
     g.ox = pl + (inner_w - cw) / 2
     g.oy = pt + (g.label_h if top else 0)
@@ -495,6 +497,9 @@ def absolutize(g: Group, ox: float, oy: float) -> None:
 
 def layout(doc: Document) -> None:
     root = doc.root
+    for e in doc.edges:  # layout may run again after the router widens gaps
+        if e.wp_owner is not None:
+            e.waypoints, e.wp_owner = [], None
     layout_group(root, doc)
     absolutize(root, 0, 0)
     # translate virtual waypoints into absolute coords and attach to edges

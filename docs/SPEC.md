@@ -185,12 +185,33 @@ SVG output uses SMIL `<animate>` (plays in browsers); the same tracks drive APNG
 - `nodal x.nod -o x.png` — animated PNG (APNG), one seamless loop (LCM of all cycle
   times, capped at 12s); `--fps 20 --scale 2 --seconds N` tune it. Needs `nodal[apng]`.
 
-## 8. Output contract
+## 8. Pipeline and output contract
 
-The renderer emits a standalone SVG 1.1 file. Every element carries
-`class="nodal-node <classes>"` and `id`, styling is also written as presentation
-attributes so the file looks the same in rsvg, Inkscape, WeasyPrint, PowerPoint or
-a browser. Text width is measured with the actual font file (no browser).
+Same shape as slidr: one intermediate representation, many output handlers.
+
+```
+.nod text ─parse→ AST (model.py) ─style→ ─layout ⇄ route→ Scene IR (ir.py) ─→ render/svg.py
+                                          (iterated)                           └→ render/apng.py
+```
+
+- **AST** (`model.Document`): groups, nodes, edges with attributes and resolved CSS.
+- **Layout** (`layout.py`): per-group placement, inside-out.
+- **Routing** (`route.py`): ports, lanes, bus levels, diagonal policy. The router reports
+  rank gaps too narrow for the lanes passing through them; the layout widens exactly
+  those gaps and runs again (so horizontal runs keep ≥12 px clear of boxes above and
+  below).
+- **Scene IR** (`scene.py` → `ir.Scene`): absolute geometry, paint, text lines and
+  animation tracks. Group titles are placed here: a title slides along its band to a
+  span no edge crosses; if none exists the group is widened and the pipeline reruns.
+  Edge labels sit on the longest straight run of their edge.
+- **Writers** (`render/`): consume only the Scene IR. `svg` (animated or frozen) and
+  `apng`. New targets (PNG, PDF, ODP shapes, slidr-native) add a writer, nothing else.
+
+The SVG writer emits a standalone SVG 1.1 file. Every element carries
+`class="nodal-node <classes>"` and `id`; styling is written as presentation attributes,
+and title clearance uses plain geometry (no masks), so the file looks the same in rsvg,
+cairosvg, Inkscape, WeasyPrint, PowerPoint or a browser. Text width is measured with
+the actual font file (no browser).
 
 ## 9. Example
 
