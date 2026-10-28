@@ -147,6 +147,16 @@ compounds (`node.db`, `edge.hot`), group descendant (`#cluster node`). Specifici
 and source order follow CSS. Order of precedence:
 built-in defaults < stylesheets < `default` statements < inline attributes.
 
+Stylesheets are layered, each overriding the one before:
+
+1. `default.css`, shipped with predictygraph (font, sizes, neutral colours)
+2. the theme (`graph theme=…` or `--theme`), if any
+3. css in the `.pdg` file (`css { … }` blocks and `css "file.css"`)
+4. `--css` files given on the command line
+
+Themes only set colours and shape unless their TOML sets `[shape] font`, so the
+default font survives a theme change.
+
 Supported properties:
 
 - Box: `fill`, `stroke`, `stroke-width`, `stroke-dasharray`, `border-radius`,
@@ -171,13 +181,17 @@ so the measurement matches:
 - `web`: every font in the list is measured and boxes fit the widest, so labels fit
   whichever font a browser picks.
 
-Set it with `graph target=web` or `--target web` (the option wins). Platform-specific
-fonts go in `@target` blocks, which apply only when the active target is listed:
+Set it with `graph target=web` or `--target web` (the option wins).
+
+The default font is `Roboto, Arial, "Helvetica Neue", sans-serif`. Roboto is not
+bundled: pages showing the SVG should load it as a web font. Without it, viewers fall
+back to Arial/Helvetica. Platform-specific fonts go in `@target` blocks, which apply
+only when the active target is listed:
 
 ```css
-graph { font-family: "DejaVu Sans", sans-serif; }
-@target macos   { graph { font-family: "Helvetica Neue", sans-serif; } }
-@target windows, web { graph { font-family: Arial, sans-serif; } }
+graph { font-family: Roboto, Arial, "Helvetica Neue", sans-serif; }
+@target linux   { graph { font-family: "DejaVu Sans", sans-serif; } }
+@target windows { graph { font-family: Arial, sans-serif; } }
 ```
 
 predictygraph bundles width-only copies of DejaVu Sans, Liberation Sans/Serif/Mono and
