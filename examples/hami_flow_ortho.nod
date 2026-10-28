@@ -1,0 +1,34 @@
+# HAMi scheduling flow: three balancing styles in one file
+graph dir=LR balance=median route=ortho radius=8 edge-width=1.5 rank-gap=70
+css "theme.css"
+
+user "Data scientist" image=icons/user.svg img-width=40
+
+group cp "Control plane" layout=layered dir=TB balance=center {
+  api "kube-apiserver"
+  hook "HAMi webhook" .hami
+  sched "HAMi scheduler" .hami shape=pill
+  api -> hook -> sched
+}
+
+group nodes "GPU nodes" layout=grid cols=2 gap=14 {
+  default node .gpu
+  g0 "A100\n80 GB"
+  g1 "A100\n80 GB"
+  g2 "H100\n80 GB"
+  g3 "L40S\n48 GB"
+}
+
+group mon "Observability" layout=radial center=prom {
+  prom "Prometheus" shape=circle
+  graf "Grafana"
+  alert "Alertmanager"
+  dash "HAMi WebUI" .hami
+}
+
+db "etcd" shape=cylinder
+
+user -> api "submit pod"
+api <..> db arrow=both
+sched ==> g1 "bind vGPU" .hot
+nodes -> prom "metrics" width=1 head=open
