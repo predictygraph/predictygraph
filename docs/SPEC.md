@@ -70,6 +70,15 @@ Per-edge attributes override arrow defaults:
     into a straight diagonal.
   - `ortho`: right angles; `radius=` rounds the corners (default 6).
 - `radius=N`, `stub=N` — bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
+- `diagonal=N|none|always` — when a bent edge may use one slanted segment instead of a
+  right-angle jog. Every `bend`/`ortho` edge is: stub along the flow axis, one jog
+  sideways, stub into the target. The jog is diagonal only if the sideways offset is at
+  most N px **and** the slant fits between the two stubs at `diagonal-angle`; otherwise
+  it is a perpendicular run (Z shape). Aligned ports are always one straight line.
+  Default: `40` for `route=bend`, `none` for `route=ortho`. `always` steepens the angle
+  as needed so every jog is diagonal.
+- `diagonal-angle=45` — slant angle in degrees from the flow axis (10–80; 45 = octilinear)
+- Both keys work on edges, groups (nearest group wins), the `graph` line and in CSS.
 - `exit=top|bottom|left|right`, `enter=...` — pin the side an edge leaves/enters (port at the
   side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner.
 

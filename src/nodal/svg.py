@@ -59,6 +59,7 @@ class SvgRenderer:
         self.out: list[str] = []
         self.defs: dict[str, str] = {}
         self.anim = Animator(t)
+        self._diag_mode, self._diag_max, self._diag_angle = "auto", 40.0, 45.0
 
     # ------------------------------------------------------------ edges
     def prepare_edges(self):
@@ -201,11 +202,51 @@ class SvgRenderer:
         p1 = boundary_point(b, *tgt1, b.attrs.get("shape", "box"))
         return [p0] + wps + [p1], ("v" if abs(p1[1] - p0[1]) >= abs(p1[0] - p0[0]) else "h")
 
+    def octilinear(self, p0, p1, axis, mid, stub):
+        """Route between two ports with horizontal/vertical runs and at most one diagonal.
+
+        main  = distance along the flow axis, cross = sideways offset to make up.
+        * cross ~ 0                     -> one straight line
+        * cross <= diag-max and the slanted piece fits between the stubs
+                                        -> stub, short diagonal at `angle`, stub
+        * otherwise                     -> stub, perpendicular run, stub (Z shape)
+        The diagonal / perpendicular jog is centred on `mid` (shared bus level) if given.
+        """
+        (x0, y0), (x1, y1) = p0, p1
+        v = axis == "v"
+        a0, a1 = (y0, y1) if v else (x0, x1)      # main axis
+        c0, c1 = (x0, x1) if v else (y0, y1)      # cross axis
+        main, cross = a1 - a0, c1 - c0
+        sgn = 1.0 if main >= 0 else -1.0
+
+        def P(a, c):
+            return (c, a) if v else (a, c)
+
+        if abs(cross) < 0.5:
+            return [p0, p1]
+        diag_max, angle = self._diag_max, self._diag_angle
+        stub = min(stub, abs(main) / 2)
+        room = abs(main) - 2 * stub
+        if diag_max >= 1e9 and room > 1:  # diagonal=always: steepen until the slant fits
+            angle = max(angle, math.degrees(math.atan2(abs(cross), room)))
+        dlen = abs(cross) / math.tan(math.radians(angle))  # main-axis length the slant uses
+        centre = mid if mid is not None else (a0 + a1) / 2
+        if abs(cross) <= diag_max and dlen <= room:
+            s = max(a0 + sgn * stub, min(centre - sgn * dlen / 2, a1 - sgn * (stub + dlen))) if sgn > 0 else \
+                min(a0 + sgn * stub, max(centre - sgn * dlen / 2, a1 - sgn * (stub + dlen)))
+            return [p0, P(s, c0), P(s + sgn * dlen, c1), p1]
+        m = max(a0 + sgn * stub, min(centre, a1 - sgn * stub)) if sgn > 0 else \
+            min(a0 + sgn * stub, max(centre, a1 - sgn * stub))
+        return [p0, P(m, c0), P(m, c1), p1]
+
     def path_d(self, pts, axis, route, radius=6.0, stub=None, mid=None):
         if axis == "L":  # explicit-port L shape: polyline with rounded corner
             return self._rounded(list(pts), max(radius, 8))
         if route == "straight" or len(pts) < 2:
             return "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in pts)
+        if route in ("bend", "ortho") and len(pts) == 2 and self._diag_mode != "legacy":
+            return self._rounded(self.octilinear(pts[0], pts[-1], axis, mid,
+                                                 stub if stub is not None else radius * 1.5), radius)
         if route == "bend":
             # straight run in the middle, curved only where it leaves/enters a node
             (x0, y0), (x1, y1) = pts[0], pts[-1]
@@ -332,6 +373,11 @@ class SvgRenderer:
         if stub is not None and heads:
             stub += hl  # keep the bend clear of the head
         radius = px(st.get("radius"), 12 if route == "bend" else 6)
+        # diagonal policy: ortho stays strictly right-angled unless asked; bend allows short slants
+        dg = str(st.get("diagonal", "40" if route == "bend" else "0")).strip()
+        self._diag_mode = "legacy" if dg == "legacy" else "auto"
+        self._diag_max = {"none": 0.0, "always": 1e9}.get(dg, px(dg, 40.0))
+        self._diag_angle = min(80.0, max(10.0, px(st.get("diagonal-angle"), 45.0)))
         cap = "butt" if heads else "round"
         attrs = [f'd="{self.path_d(pts, axis, route, radius, stub, self.bend_level.get(e.id))}"', 'fill="none"', f'stroke="{color}"',
                  f'stroke-width="{width:g}"', f'stroke-linecap="{cap}"', 'stroke-linejoin="round"']

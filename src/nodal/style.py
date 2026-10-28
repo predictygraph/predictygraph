@@ -162,14 +162,20 @@ def apply_styles(doc: Document) -> None:
         st.update(sheet.compute(e, [a for a in anc if a is not None]))
         if "edge-width" in ge:
             st["stroke-width"] = ge["edge-width"]
-        for k in ("arrow", "head", "route", "radius", "stub", "head-size", "flow-speed"):
+        for k in ("arrow", "head", "route", "radius", "stub", "head-size", "flow-speed",
+                  "diagonal", "diagonal-angle"):
             if k in ge:
                 st[k] = ge[k]
+            # nearest enclosing group wins over the graph line
+            for g in reversed([a for a in anc if a is not None and a is not root]):
+                if k in g.attrs:
+                    st[k] = g.attrs[k]
         for k, v in e.attrs.items():
             if k == "width":
                 st["stroke-width"] = v
             elif k in ("stroke", "color", "arrow", "head", "route", "stroke-dasharray", "font-size",
-                       "radius", "stub", "head-size", "flow", "flow-speed"):
+                       "radius", "stub", "head-size", "flow", "flow-speed",
+                       "diagonal", "diagonal-angle"):
                 st[k] = v
         e.style = sheet.resolve_vars(st)
     _ = root_inherit

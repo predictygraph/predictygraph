@@ -1,0 +1,26 @@
+# Diagonal policy demo: same graph, three settings side by side.
+# p and q share child y, so y sits between them: short sideways offsets (p->y, q->y)
+# next to long ones (p->x, q->z).
+graph dir=LR layout=row gap=40
+css { group { font-size: 11px; } }
+
+group auto "bend (default: diagonal=40)" dir=TB route=bend {
+  p1 "p"; q1 "q"
+  x1 "x"; y1 "shared y"; z1 "z"
+  p1 -> x1, y1
+  q1 -> y1, z1
+}
+
+group never "diagonal=none" dir=TB route=bend diagonal=none {
+  p2 "p"; q2 "q"
+  x2 "x"; y2 "shared y"; z2 "z"
+  p2 -> x2, y2
+  q2 -> y2, z2
+}
+
+group always "diagonal=always" dir=TB route=bend diagonal=always {
+  p3 "p"; q3 "q"
+  x3 "x"; y3 "shared y"; z3 "z"
+  p3 -> x3, y3
+  q3 -> y3, z3
+}
