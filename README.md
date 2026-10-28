@@ -4,9 +4,11 @@
 plain-CSS styling, and static or animated SVG/APNG output (no browser).
 Spec: [docs/SPEC.md](docs/SPEC.md). Docs: [predictygraph.github.io](https://predictygraph.github.io/).
 Editor support: [tree-sitter-pdg](https://github.com/predictygraph/tree-sitter-pdg).
+Rendered examples and the gallery: [predictygraph.github.io](https://predictygraph.github.io/). This repo keeps
+only `.pdg` sources; images live in the docs repo (git-lfs).
 
 ```bash
-uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg
+uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg (not committed)
 uv run pdg diagram.pdg --css theme.css -o out.svg
 uv run pdg diagram.pdg -o out.png                    # animated PNG (APNG)
 uv run pdg diagram.pdg --check                       # validate only
