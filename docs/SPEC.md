@@ -215,7 +215,7 @@ the actual font file (no browser).
 
 ## 9. Example
 
-```nod
+```pdg
 graph dir=LR balance=median route=ortho edge-width=1.5
 css "theme.css"
 

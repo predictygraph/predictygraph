@@ -1,13 +1,18 @@
 # predictygraph
 
-Readable diagram DSL with per-group layouts ("balancing styles"), plain-CSS styling,
-and static SVG output (no browser). Spec: [docs/SPEC.md](docs/SPEC.md).
+**Predictable graphs.** A readable diagram DSL with per-group layouts ("balancing styles"),
+plain-CSS styling, and static or animated SVG/APNG output (no browser).
+Spec: [docs/SPEC.md](docs/SPEC.md). Docs: [predictygraph.github.io](https://predictygraph.github.io/).
+Editor support: [tree-sitter-pdg](https://github.com/predictygraph/tree-sitter-pdg).
 
 ```bash
-uv run predictygraph examples/hami_flow.pdg          # -> examples/hami_flow.svg
-uv run predictygraph diagram.pdg --css theme.css -o out.svg
-uv run predictygraph diagram.pdg --check             # validate only
+uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg
+uv run pdg diagram.pdg --css theme.css -o out.svg
+uv run pdg diagram.pdg -o out.png                    # animated PNG (APNG)
+uv run pdg diagram.pdg --check                       # validate only
 ```
+
+`pdg` is the short alias of the `predictygraph` command.
 
 ## Credits
 
@@ -27,6 +32,6 @@ from its spirit. But it renders through a browser and JavaScript, leaves little
 control over layout, and the same source can render differently across versions
 and hosts.
 
-nodal keeps what we love from both (diagrams as readable text) and adds what we
+predictygraph keeps what we love from both (diagrams as readable text) and adds what we
 missed: per-group layouts, plain-CSS styling, and deterministic static SVG with no
 browser in the loop.
