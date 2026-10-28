@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Shrink the bundled fonts to metric-only files so the repo stays small.
 
 Keeps Latin, punctuation and arrows, with advance widths, kerning and layout features, so

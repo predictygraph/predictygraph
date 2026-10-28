@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Fetch the metric fonts predictygraph bundles into src/predictygraph/fonts/.
 
 DejaVu Sans (Linux default), Liberation Sans/Serif (same widths as Arial/Helvetica and

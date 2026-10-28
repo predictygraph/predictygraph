@@ -41,7 +41,8 @@ def test_aliases_measure_like_their_metric_twin():
 def test_linux_target_measures_dejavu_regardless_of_host():
     with use_target("linux"):
         w_linux, _, _ = measure(LONG, '"DejaVu Sans", sans-serif', 13)
-    assert w_linux == pytest.approx(236.2, abs=0.5)
+    # 236.2 with raqm shaping, 235.0 with Pillow's basic layout (e.g. macOS wheels)
+    assert w_linux == pytest.approx(236.2, abs=1.5)
 
 
 def test_windows_target_uses_arial_metrics_for_sans_serif():
