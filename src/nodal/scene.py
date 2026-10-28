@@ -18,6 +18,7 @@ from .style import box4, px
 from .text import measure
 
 TITLE_PAD = 6.0
+ER_HEADS = ("one", "many", "zero-one", "zero-many", "one-many")
 
 
 class SceneBuilder:
@@ -214,9 +215,7 @@ class SceneBuilder:
         arrow = e.attrs.get("arrow", e.arrow if e.arrow != "none" or "arrow" not in st else st["arrow"])
         if "arrow" in st and "arrow" not in e.attrs and e.arrow == "end":
             arrow = st["arrow"]
-        head = st.get("head", "triangle")
         pts = list(pts)
-        tip_end, tip_start = pts[-1], pts[0]
         hl = px(st.get("head-size"), min(18.0, 6.0 + width * 2.2))
         free = route == "straight" or flow_dir(lca(self.doc.items[e.src], self.doc.items[e.dst],
                                                    self.doc.root)) == "auto"
@@ -232,14 +231,15 @@ class SceneBuilder:
             return dx / l, dy / l
 
         heads = []
-        if arrow in ("end", "both"):
-            d_end = end_dir(tip_end, pts[-2])
-            heads.append((tip_end, d_end))
-            pts[-1] = (tip_end[0] - d_end[0] * hl * 0.9, tip_end[1] - d_end[1] * hl * 0.9)
-        if arrow in ("start", "both"):
-            d_st = end_dir(tip_start, pts[1])
-            heads.append((tip_start, d_st))
-            pts[0] = (tip_start[0] - d_st[0] * hl * 0.9, tip_start[1] - d_st[1] * hl * 0.9)
+        for end, nb, want, key in ((-1, -2, ("end", "both"), "head"), (0, 1, ("start", "both"), "head-start")):
+            if arrow not in want:
+                continue
+            kind = st.get(key, st.get("head", "triangle"))
+            tip = pts[end]
+            dv = end_dir(tip, pts[nb])
+            heads.append((kind, tip, dv))
+            if kind not in ER_HEADS:  # stroke stops at the head's base; ER lines run to the box
+                pts[end] = (tip[0] - dv[0] * hl * 0.9, tip[1] - dv[1] * hl * 0.9)
         stub = px(st["stub"]) if "stub" in st else None
         if stub is not None and heads:
             stub += hl
@@ -280,15 +280,17 @@ class SceneBuilder:
                                          paint=dict(base, **{"stroke-width": fwidth, "stroke-dasharray": fdash,
                                                              "stroke-linecap": "round"}),
                                          tracks=tracks))
-        for tip, dvec in heads:
-            out.children.append(self.head(head, tip, dvec, hl, color, width))
+        for kind, tip, dvec in heads:
+            out.children.append(self.head(kind, tip, dvec, hl, color, width,
+                                          self.doc.root.style.get("background", "#ffffff")))
         if e.label:
             out.children += self.edge_label(e, self.edge_polys[e.id])
         return out
 
     @staticmethod
-    def head(kind, tip, d, hl, color, width) -> Elem:
-        """Arrowhead as plain geometry: tip sits exactly on the target outline."""
+    def head(kind, tip, d, hl, color, width, bg="#ffffff") -> Elem:
+        """Arrowhead as plain geometry: tip sits exactly on the target outline.
+        ER heads (crow's foot): one, many, zero-one, zero-many, one-many."""
         tx, ty = tip
         ux, uy = d
         nx, ny = -uy, ux
@@ -296,31 +298,46 @@ class SceneBuilder:
 
         def P(a, b):  # a along -d from tip, b along normal
             return (tx - ux * a + nx * b, ty - uy * a + ny * b)
-        if kind == "open":
-            return Elem("polyline", cls="nodal-head", geom={"points": [P(hl, hw), P(0, 0), P(hl, -hw)]},
-                        paint={"fill": "none", "stroke": color, "stroke-width": max(1.2, width * 0.8),
-                               "stroke-linejoin": "miter"})
-        if kind == "diamond":
-            return Elem("polygon", cls="nodal-head",
-                        geom={"points": [P(0, 0), P(hl / 2, hw), P(hl, 0), P(hl / 2, -hw)]}, paint={"fill": color})
+
+        line = {"fill": "none", "stroke": color, "stroke-width": max(1.2, width)}
+        bar = lambda a: Elem("polyline", geom={"points": [P(a, hw), P(a, -hw)]}, paint=line)  # noqa: E731
+        crow = Elem("polyline", geom={"points": [P(0, hw), P(hl, 0), P(0, -hw)]}, paint=line)
+        ring = Elem("circle", geom={"cx": P(hl * 1.5, 0)[0], "cy": P(hl * 1.5, 0)[1], "r": hw * 0.6},
+                    paint=dict(line, fill=bg))
+        er = {"one": [bar(hl * 0.5), bar(hl * 0.9)], "many": [crow], "zero-one": [bar(hl * 0.5), ring],
+              "zero-many": [crow, ring], "one-many": [crow, bar(hl * 1.3)]}
+        if kind in ER_HEADS:
+            return Elem("group", cls="nodal-head", children=er[kind])
+        shapes = {
+            "open": ("polyline", [P(hl, hw), P(0, 0), P(hl, -hw)], dict(line, **{"stroke-linejoin": "miter"})),
+            "diamond": ("polygon", [P(0, 0), P(hl / 2, hw), P(hl, 0), P(hl / 2, -hw)], {"fill": color}),
+            "bar": ("polyline", [P(0, hw), P(0, -hw)], dict(line, **{"stroke-width": max(2, width)})),
+        }
         if kind == "dot":
-            r = hl / 2.2
-            return Elem("circle", cls="nodal-head", geom={"cx": tx - ux * r, "cy": ty - uy * r, "r": r},
-                        paint={"fill": color})
-        if kind == "bar":
-            return Elem("line", cls="nodal-head",
-                        geom={"x1": tx + nx * hw, "y1": ty + ny * hw, "x2": tx - nx * hw, "y2": ty - ny * hw},
-                        paint={"stroke": color, "stroke-width": max(2, width)})
-        return Elem("polygon", cls="nodal-head", geom={"points": [P(0, 0), P(hl, hw), P(hl, -hw)]},
-                    paint={"fill": color})
+            c = P(hl / 2.2, 0)
+            return Elem("circle", cls="nodal-head", geom={"cx": c[0], "cy": c[1], "r": hl / 2.2}, paint={"fill": color})
+        tag, pts, paint = shapes.get(kind, ("polygon", [P(0, 0), P(hl, hw), P(hl, -hw)], {"fill": color}))
+        return Elem(tag, cls="nodal-head", geom={"points": pts}, paint=paint)
 
     def edge_label(self, e, poly) -> list[Elem]:
-        st = e.style
+        st = e.label_style or e.style
         fs = px(st.get("font-size"), 11)
         w, h, lines = measure(e.label, st.get("font-family", "sans-serif"), fs)
-        # longest straight run of the drawn path
-        best = max(zip(poly, poly[1:]), key=lambda s: math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))
-        mx, my = (best[0][0] + best[1][0]) / 2, (best[0][1] + best[1][1]) / 2
+        # bent edges: the run into the target is the edge's own (a fan-out bus is shared),
+        # so labels go there when it fits; otherwise the longest run
+        segs = list(zip(poly, poly[1:]))
+        fits = len(segs) > 1 and math.dist(*segs[-1]) >= h + 4
+        best = segs[-1] if fits else max(segs, key=lambda s: math.dist(*s))
+        (ax, ay), (bx, by) = best
+        t = 0.5
+        lvl = self.router.bend_level.get(e.id) if any(
+            o is not e and o.src == e.src and self.router.bend_level.get(o.id) is not None for o in self.doc.edges) else None
+        if len(segs) == 1 and lvl is not None:  # straight sibling of a fan-out: below the bus too
+            v = abs(bx - ax) < abs(by - ay)
+            a0, a1 = (ay, by) if v else (ax, bx)
+            if min(a0, a1) < lvl < max(a0, a1):
+                t = ((lvl + a1) / 2 - a0) / (a1 - a0)
+        mx, my = ax + (bx - ax) * t, ay + (by - ay) * t
         bg = st.get("background", self.doc.root.style.get("background", "#ffffff"))
         box = Elem("rect", cls="nodal-label-bg", geom={"x": mx - w / 2 - 3, "y": my - h / 2 - 1, "w": w + 6,
                                                        "h": h + 2, "rx": 3},
