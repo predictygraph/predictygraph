@@ -1,0 +1,22 @@
+[project]
+name = "nodal"
+version = "0.1.0"
+description = "Readable, CSS-styled diagram DSL with per-group layouts, rendered to static SVG"
+authors = [{name = "Reza Jelveh", email = "git@jelveh.me"}]
+dependencies = ["tinycss2>=1.5.1", "typer>=0.26.8", "pillow>=11.0.0"]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+
+[project.scripts]
+nodal = "nodal.cli:app"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[dependency-groups]
+dev = ["pytest>=9.1.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

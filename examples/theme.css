@@ -1,0 +1,8 @@
+:root { --brand: #0f766e; --hot: #dc2626; --ink: #1f2937; }
+graph { font-family: "DejaVu Sans"; background: #ffffff; }
+node { border-radius: 8px; stroke: #475569; shadow: soft; }
+node.hami { fill: #ccfbf1; stroke: var(--brand); color: #134e4a; font-weight: bold; }
+node.gpu { fill: #eef2ff; stroke: #6366f1; font-size: 12px; min-width: 70px; }
+group { fill: #f8fafc; stroke: #cbd5e1; stroke-dasharray: 4 3; }
+#mon { fill: #fff7ed; stroke: #fdba74; }
+edge.hot { stroke: var(--hot); color: var(--hot); font-weight: bold; }
