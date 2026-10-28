@@ -95,9 +95,22 @@ class SvgRenderer:
         p1 = boundary_point(b, *tgt1, b.attrs.get("shape", "box"))
         return [p0] + wps + [p1], ("v" if abs(p1[1] - p0[1]) >= abs(p1[0] - p0[0]) else "h")
 
-    def path_d(self, pts, axis, route):
+    def path_d(self, pts, axis, route, radius=6.0, stub=None):
         if route == "straight" or len(pts) < 2:
             return "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in pts)
+        if route == "bend":
+            # straight run in the middle, curved only where it leaves/enters a node
+            (x0, y0), (x1, y1) = pts[0], pts[-1]
+            span = abs(y1 - y0) if axis == "v" else abs(x1 - x0)
+            k = min(stub if stub is not None else radius * 1.5, span / 2)
+            sy = math.copysign(k, (y1 - y0) or 1)
+            sx = math.copysign(k, (x1 - x0) or 1)
+            mid = list(pts[1:-1])
+            if axis == "v":
+                poly = [pts[0], (x0, y0 + sy)] + mid + [(x1, y1 - sy), pts[-1]]
+            else:
+                poly = [pts[0], (x0 + sx, y0)] + mid + [(x1 - sx, y1), pts[-1]]
+            return self._rounded(poly, radius)
         if route == "ortho":
             seg = [pts[0]]
             for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
@@ -112,7 +125,7 @@ class SvgRenderer:
             for p in seg[1:]:
                 if abs(p[0] - clean[-1][0]) > 0.05 or abs(p[1] - clean[-1][1]) > 0.05:
                     clean.append(p)
-            return self._rounded(clean, 6)
+            return self._rounded(clean, radius)
         # curve: cubic beziers with tangents along the flow axis
         d = f"M {pts[0][0]:.1f} {pts[0][1]:.1f}"
         for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
@@ -185,7 +198,8 @@ class SvgRenderer:
         pts = list(pts)
         if arrow in ("end", "both"):
             pts[-1] = self._pull(pts[-1], pts[-2], 0)
-        attrs = [f'd="{self.path_d(pts, axis, route)}"', 'fill="none"', f'stroke="{color}"',
+        stub = px(st["stub"]) if "stub" in st else None
+        attrs = [f'd="{self.path_d(pts, axis, route, px(st.get("radius"), 12 if route == "bend" else 6), stub)}"', 'fill="none"', f'stroke="{color}"',
                  f'stroke-width="{width:g}"', 'stroke-linecap="round"', 'stroke-linejoin="round"']
         if dash:
             attrs.append(f'stroke-dasharray="{dash}"')

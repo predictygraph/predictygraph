@@ -60,7 +60,13 @@ Per-edge attributes override arrow defaults:
 - `width=3` — stroke width in px
 - `arrow=none|end|start|both` — overrides what the token says
 - `head=triangle|open|diamond|dot|bar` — arrowhead shape
-- `route=straight|ortho|curve` — routing for this edge
+- `route=straight|ortho|curve|bend` — routing for this edge
+  - `curve`: full S-shaped bezier.
+  - `bend`: straight in the middle, rounded only at the ends. The edge leaves and enters
+    nodes along the flow axis, runs `stub=` px, then bends with corner `radius=` (default 12)
+    into a straight diagonal.
+  - `ortho`: right angles; `radius=` rounds the corners (default 6).
+- `radius=N`, `stub=N` — bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
 - `weight=N` — how strongly a layered layout keeps the edge short/straight (default 1)
 - `constraint=false` — the edge is drawn but ignored by layout
 

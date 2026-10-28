@@ -1,0 +1,19 @@
+# Same fan-out, four routing styles side by side
+graph dir=LR layout=row gap=40
+
+group curve "route=curve" layout=layered dir=TB {
+  default edge route=curve
+  a1 "source"; a1 -> b1, c1, d1
+}
+group bend "route=bend" layout=layered dir=TB {
+  default edge route=bend
+  a2 "source"; a2 -> b2, c2, d2
+}
+group bend2 "bend radius=24 stub=8" layout=layered dir=TB {
+  default edge route=bend radius=24 stub=8
+  a3 "source"; a3 -> b3, c3, d3
+}
+group ortho "route=ortho" layout=layered dir=TB {
+  default edge route=ortho radius=10
+  a4 "source"; a4 -> b4, c4, d4
+}
