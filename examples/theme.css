@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 The predictygraph Authors
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 :root { --brand: #0f766e; --hot: #dc2626; --ink: #1f2937; }
 graph { font-family: "DejaVu Sans"; background: #ffffff; }
 node { border-radius: 8px; stroke: #475569; shadow: soft; }

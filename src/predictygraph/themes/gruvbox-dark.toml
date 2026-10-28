@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 schema = 1
 name = "gruvbox-dark"
 dark = true

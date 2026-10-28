@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Diagonal policy demo: same graph, three settings side by side.
 # p and q share child y, so y sits between them: short sideways offsets (p->y, q->y)
 # next to long ones (p->x, q->z).

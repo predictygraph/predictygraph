@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Scene IR: a laid-out, routed, fully styled diagram, independent of output format.
 
 Pipeline (same shape as slidr):  .pdg text → AST (model.Document) → layout + routing

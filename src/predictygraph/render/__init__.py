@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Output handlers. Each one consumes a Scene IR and knows nothing about the DSL.
 
     svg   animated (SMIL) or frozen SVG

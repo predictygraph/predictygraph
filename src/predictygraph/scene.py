@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """AST + layout + routing -> Scene IR.
 
 Also owns the decisions that need the routed geometry of everything at once:

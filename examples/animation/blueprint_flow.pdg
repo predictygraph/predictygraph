@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Blueprint: GPU box to GPU cloud
 # Converted from the Graphviz `dot` block in talks/containerdays_neocloud_story.md
 graph theme=nord dir=TB route=bend rank-gap=34 node-gap=22

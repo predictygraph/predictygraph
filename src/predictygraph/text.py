@@ -1,37 +1,43 @@
-"""Text measurement with real font files via Pillow, and image leaf loading."""
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""Text measurement with real font files via Pillow, and image leaf loading.
+
+Which font file is used depends on the active render target (see fonts.py). The target
+is set for the duration of one build via ``use_target``.
+"""
 from __future__ import annotations
 
 import base64
+import contextlib
+import contextvars
 import functools
 import mimetypes
 import re
-import subprocess
 from pathlib import Path
 
 from PIL import Image, ImageFont
 
+from .fonts import FontResolver
 from .safe import NUM, number, safe_path
 
 MAX_FONT = 1000.0
+_resolver: contextvars.ContextVar[FontResolver] = contextvars.ContextVar("pdg_fonts", default=FontResolver())
 
 
-@functools.lru_cache(maxsize=64)
-def find_font(family: str, bold: bool) -> str | None:
-    fam = family.split(",")[0].strip().strip("\"'") or "sans-serif"
-    fam = fam.lstrip("-") or "sans-serif"  # never let a family look like an fc-match option
-    pattern = fam + (":bold" if bold else "")
+@contextlib.contextmanager
+def use_target(target: str | None):
+    token = _resolver.set(FontResolver(target or "host"))
     try:
-        out = subprocess.run(["fc-match", "-f", "%{file}", "--", pattern], capture_output=True,
-                             text=True, timeout=5, check=False).stdout.strip()
-        return out or None
-    except (OSError, subprocess.SubprocessError):
-        return None
+        yield _resolver.get()
+    finally:
+        _resolver.reset(token)
 
 
 @functools.lru_cache(maxsize=256)
-def get_font(family: str, size: float, bold: bool):
+def get_font(path: str | None, size: float):
     size = min(MAX_FONT, max(1.0, size)) if size == size else 14.0
-    path = find_font(family, bold)
     try:
         if path:
             return ImageFont.truetype(path, max(1, round(size)))
@@ -45,8 +51,8 @@ def measure(text: str, family: str, size: float, bold: bool = False) -> tuple[fl
     if not lines:
         return 0.0, 0.0, []
     size = min(MAX_FONT, max(1.0, size)) if size == size else 14.0
-    font = get_font(family, size, bold)
-    w = max(font.getlength(line) for line in lines)
+    fonts = [get_font(c.path, size) for c in _resolver.get().choose(family, bold)]
+    w = max(f.getlength(line) for f in fonts for line in lines)
     line_h = size * 1.25
     return w, line_h * len(lines), lines
 

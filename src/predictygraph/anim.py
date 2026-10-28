@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Animation tracks: format-independent keyframe descriptions.
 
 Every animated property is a looping linear keyframe track ``(attr, values, dur)``

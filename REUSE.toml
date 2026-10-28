@@ -1,0 +1,32 @@
+version = 1
+
+[[annotations]]
+path = "uv.lock"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The predictygraph Authors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "examples/icons/*.svg"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The predictygraph Authors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Metric-only subsets (no outlines) of free fonts, used to measure label widths.
+[[annotations]]
+path = "src/predictygraph/fonts/DejaVuSans*.ttf"
+precedence = "override"
+SPDX-FileCopyrightText = ["2003 Bitstream, Inc.", "2006 Tavmjong Bah", "DejaVu changes are in the public domain"]
+SPDX-License-Identifier = "Bitstream-Vera"
+
+[[annotations]]
+path = ["src/predictygraph/fonts/LiberationSans-*.ttf", "src/predictygraph/fonts/LiberationSerif-*.ttf", "src/predictygraph/fonts/LiberationMono-*.ttf"]
+precedence = "override"
+SPDX-FileCopyrightText = ["2010 Google Corporation", "2012 Red Hat, Inc."]
+SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+path = "src/predictygraph/fonts/Carlito-*.ttf"
+precedence = "override"
+SPDX-FileCopyrightText = "2010-2013 tyPoland Lukasz Dziedzic"
+SPDX-License-Identifier = "OFL-1.1"

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Line-oriented parser for the Predictygraph DSL (see docs/SPEC.md)."""
 from __future__ import annotations
 

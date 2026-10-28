@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Debug: show router channels, needs and extra gaps per layout pass for a .pdg file."""
 from __future__ import annotations
 

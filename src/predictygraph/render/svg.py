@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """SVG writer: Scene IR -> SVG text.
 
 t=None  animated SVG: static values are the first keyframe, SMIL <animate> drives tracks.

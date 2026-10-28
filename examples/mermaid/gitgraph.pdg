@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Mermaid "gitGraph" docs example: commits on lanes (fixed rows)
 graph theme=solarized-dark layout=fixed route=bend arrow=none edge-width=3
 css { node { min-width: 22px; min-height: 22px; padding: 2px; font-size: 10px; } }

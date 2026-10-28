@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Mermaid "mindmap" docs example, as nested radial groups
 graph theme=catppuccin-mocha layout=radial center=root route=straight arrow=none
 

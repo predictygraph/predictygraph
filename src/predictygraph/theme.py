@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """TOML colour themes -> CSS (variables + base rules). See docs/THEMES.md."""
 from __future__ import annotations
 

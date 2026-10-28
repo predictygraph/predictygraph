@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Inspect an APNG: frame count, durations, and how much each frame differs from the first."""
 from __future__ import annotations
 

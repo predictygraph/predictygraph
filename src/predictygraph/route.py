@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Edge routing (format-independent): ports, lanes, bus levels and octilinear paths.
 
 The router works on the laid-out AST and decides *where* every edge goes. It reports

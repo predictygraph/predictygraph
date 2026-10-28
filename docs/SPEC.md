@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 The predictygraph Authors
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Predictygraph DSL — specification v0.1 (draft)
 
 Predictygraph is a small, line-oriented text format for diagrams (flowcharts, architecture
@@ -150,6 +156,38 @@ Supported properties:
 - Group: everything a node has plus `label-position: top|bottom`
 - Custom properties `--name: value` and `var(--name)` are supported, so slidr themes
   can share palettes.
+
+### 6.1 Render targets and fonts
+
+Labels are measured to size their boxes, but drawn later by whatever shows the SVG.
+If the viewer uses a different font from the one measured, labels overflow their boxes
+(wider font) or leave gaps (narrower font). A *target* names where the SVG will be shown,
+so the measurement matches:
+
+- `host` (default): fonts installed on the machine running predictygraph; a bundled copy
+  if the font is not installed.
+- `linux`, `macos`, `windows`: the first font in the `font-family` list that the platform
+  ships; generic families (`sans-serif`, …) resolve the way that platform does.
+- `web`: every font in the list is measured and boxes fit the widest, so labels fit
+  whichever font a browser picks.
+
+Set it with `graph target=web` or `--target web` (the option wins). Platform-specific
+fonts go in `@target` blocks, which apply only when the active target is listed:
+
+```css
+graph { font-family: "DejaVu Sans", sans-serif; }
+@target macos   { graph { font-family: "Helvetica Neue", sans-serif; } }
+@target windows, web { graph { font-family: Arial, sans-serif; } }
+```
+
+predictygraph bundles width-only copies of DejaVu Sans, Liberation Sans/Serif/Mono and
+Carlito. Liberation and Carlito have the same character widths as Arial/Helvetica,
+Times New Roman, Courier New and Calibri, so those are measured exactly. Any other font
+with no bundled or installed copy is measured with DejaVu Sans, with a warning.
+
+**An SVG made for one target can overflow on another.** For example, a diagram made with
+`--target windows` (Arial) and opened on Linux (DejaVu Sans, 10–15% wider) has labels that
+run past their boxes. Use `web` for files that are shared or published.
 
 ## 7. Animation
 

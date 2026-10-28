@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Mermaid "stateDiagram-v2" docs example (Still / Moving / Crash)
 graph theme=nord dir=TB route=bend
 

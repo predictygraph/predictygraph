@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Regression tests for labels, ER heads, empty-label circles and the label selector."""
 from predictygraph import build_scene, parse, render
 

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 The predictygraph Authors
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # predictygraph
 
 **Predictable graphs.** A readable diagram DSL with per-group layouts ("balancing styles"),
@@ -12,6 +18,7 @@ uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg
 uv run pdg diagram.pdg --css theme.css -o out.svg
 uv run pdg diagram.pdg -o out.png                    # animated PNG (APNG)
 uv run pdg diagram.pdg --check                       # validate only
+uv run pdg diagram.pdg --target web                  # size labels to fit any browser font
 ```
 
 `pdg` is the short alias of the `predictygraph` command.

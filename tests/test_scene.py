@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Scene IR + routing behaviour: lanes, rank clearance, title clearance, writers."""
 import re
 

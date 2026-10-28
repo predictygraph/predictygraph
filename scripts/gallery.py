@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Render every .pdg in a folder to SVG + PNG and build a contact sheet."""
 from __future__ import annotations
 

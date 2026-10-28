@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """CSS subset resolution with tinycss2 (no browser)."""
 from __future__ import annotations
 
@@ -76,13 +80,27 @@ def matches(sel: Selector, item, ancestors: list) -> bool:
 
 
 class StyleSheet:
-    def __init__(self):
+    def __init__(self, target: str | None = None):
         self.rules: list[tuple[Selector, dict[str, str], int]] = []
         self.vars: dict[str, str] = {}
         self._order = 0
+        self.target = target
+
+    def target_matches(self, prelude) -> bool:
+        """`@target macos, windows { ... }` applies when the active target is listed."""
+        names = {t.strip().lower() for t in tinycss2.serialize(prelude).split(",") if t.strip()}
+        return self.target is not None and self.target in names
 
     def add(self, css: str):
-        for rule in tinycss2.parse_stylesheet(css, skip_comments=True, skip_whitespace=True):
+        self.add_rules(tinycss2.parse_stylesheet(css, skip_comments=True, skip_whitespace=True))
+
+    def add_rules(self, rules):
+        for rule in rules:
+            if rule.type == "at-rule" and rule.lower_at_keyword == "target":
+                if rule.content is not None and self.target_matches(rule.prelude):
+                    self.add_rules(tinycss2.parse_rule_list(rule.content, skip_comments=True,
+                                                            skip_whitespace=True))
+                continue
             if rule.type != "qualified-rule":
                 continue
             decls = {}
@@ -138,8 +156,8 @@ class _Label:
     kind: str = "label"
 
 
-def apply_styles(doc: Document) -> None:
-    sheet = StyleSheet()
+def apply_styles(doc: Document, target: str | None = None) -> None:
+    sheet = StyleSheet(target)
     sheet.add(BUILTIN)
     for css, _ in doc.stylesheets:
         sheet.add(css)
