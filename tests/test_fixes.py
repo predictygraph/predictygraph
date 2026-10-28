@@ -1,5 +1,5 @@
 """Regression tests for labels, ER heads, empty-label circles and the label selector."""
-from nodal import build_scene, parse, render
+from predictygraph import build_scene, parse, render
 
 
 def _node_rect(sc, nid):
@@ -14,7 +14,7 @@ def test_empty_label_circle_is_round():
 
 def test_fanout_labels_do_not_overlap():
     sc = build_scene(parse('graph route=ortho\nC\nC -> D "One"\nC -> E "Two"\nC -> F "Three"\n'))
-    boxes = [(g["x"], g["y"], g["w"], g["h"]) for g in (e.geom for e in sc.walk() if e.cls == "nodal-label-bg")]
+    boxes = [(g["x"], g["y"], g["w"], g["h"]) for g in (e.geom for e in sc.walk() if e.cls == "pdg-label-bg")]
     assert len(boxes) == 3
     for i, (x, y, w, h) in enumerate(boxes):
         for (x2, y2, w2, h2) in boxes[i + 1:]:
@@ -23,7 +23,7 @@ def test_fanout_labels_do_not_overlap():
 
 def test_er_heads_and_head_start():
     svg = render("graph route=ortho\na -- b arrow=both head=many head-start=one\n")
-    assert svg.count('class="nodal-head"') == 2
+    assert svg.count('class="pdg-head"') == 2
 
 
 def test_label_selector():

@@ -1,6 +1,6 @@
-# Nodal DSL — specification v0.1 (draft)
+# Predictygraph DSL — specification v0.1 (draft)
 
-Nodal is a small, line-oriented text format for diagrams (flowcharts, architecture
+Predictygraph is a small, line-oriented text format for diagrams (flowcharts, architecture
 graphs, trees, grids). Design goals:
 
 1. **Readable diffs** — one statement per line, no XML, no coordinates unless you ask.
@@ -12,7 +12,7 @@ graphs, trees, grids). Design goals:
 4. **Language agnostic** — the grammar below is the contract. Python is only the
    reference implementation.
 
-File extension: `.nod`. Encoding: UTF-8.
+File extension: `.pdg`. Encoding: UTF-8.
 
 ## 1. Lexical rules
 
@@ -28,7 +28,7 @@ File extension: `.nod`. Encoding: UTF-8.
 
 ```
 graph   [attrs]                    # optional header, must be first statement
-css     "file.css"                 # external stylesheet (relative to the .nod file)
+css     "file.css"                 # external stylesheet (relative to the .pdg file)
 css { ...raw css... }              # inline stylesheet (braces must balance)
 default node|edge|group [attrs]    # defaults for everything after this line in scope
 
@@ -180,17 +180,17 @@ SVG output uses SMIL `<animate>` (plays in browsers); the same tracks drive APNG
 
 **Output modes (CLI):**
 
-- `nodal x.nod` — animated SVG
-- `nodal x.nod --static` / `--at 0.4` — SVG frozen at t=0 / t=0.4s
-- `nodal x.nod -o x.png` — animated PNG (APNG), one seamless loop (LCM of all cycle
-  times, capped at 12s); `--fps 20 --scale 2 --seconds N` tune it. Needs `nodal[apng]`.
+- `predictygraph x.pdg` — animated SVG
+- `predictygraph x.pdg --static` / `--at 0.4` — SVG frozen at t=0 / t=0.4s
+- `predictygraph x.pdg -o x.png` — animated PNG (APNG), one seamless loop (LCM of all cycle
+  times, capped at 12s); `--fps 20 --scale 2 --seconds N` tune it. Needs `predictygraph[apng]`.
 
 ## 8. Pipeline and output contract
 
 Same shape as slidr: one intermediate representation, many output handlers.
 
 ```
-.nod text ─parse→ AST (model.py) ─style→ ─layout ⇄ route→ Scene IR (ir.py) ─→ render/svg.py
+.pdg text ─parse→ AST (model.py) ─style→ ─layout ⇄ route→ Scene IR (ir.py) ─→ render/svg.py
                                           (iterated)                           └→ render/apng.py
 ```
 
@@ -208,7 +208,7 @@ Same shape as slidr: one intermediate representation, many output handlers.
   `apng`. New targets (PNG, PDF, ODP shapes, slidr-native) add a writer, nothing else.
 
 The SVG writer emits a standalone SVG 1.1 file. Every element carries
-`class="nodal-node <classes>"` and `id`; styling is written as presentation attributes,
+`class="pdg-node <classes>"` and `id`; styling is written as presentation attributes,
 and title clearance uses plain geometry (no masks), so the file looks the same in rsvg,
 cairosvg, Inkscape, WeasyPrint, PowerPoint or a browser. Text width is measured with
 the actual font file (no browser).

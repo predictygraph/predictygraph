@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render every .nod in a folder to SVG + PNG and build a contact sheet."""
+"""Render every .pdg in a folder to SVG + PNG and build a contact sheet."""
 from __future__ import annotations
 
 import argparse
@@ -16,7 +16,7 @@ class Gallery:
     def render_one(self, src: Path) -> Path | None:
         svg = src.with_suffix(".svg")
         png = src.with_suffix(".png")
-        r = subprocess.run(["uv", "run", "-q", "nodal", str(src), "-o", str(svg)],
+        r = subprocess.run(["uv", "run", "-q", "predictygraph", str(src), "-o", str(svg)],
                            capture_output=True, text=True, check=False)
         if r.returncode:
             print(f"FAIL {src.name}: {r.stderr.strip()}", file=sys.stderr)
@@ -49,10 +49,10 @@ class Gallery:
         print(out)
 
     def run(self) -> int:
-        pngs = [p for p in (self.render_one(s) for s in sorted(self.folder.glob("*.nod"))) if p]
+        pngs = [p for p in (self.render_one(s) for s in sorted(self.folder.glob("*.pdg"))) if p]
         if pngs:
             self.sheet(pngs, self.folder / "gallery.png")
-        return 0 if len(pngs) == len(list(self.folder.glob("*.nod"))) else 1
+        return 0 if len(pngs) == len(list(self.folder.glob("*.pdg"))) else 1
 
 
 def main() -> int:

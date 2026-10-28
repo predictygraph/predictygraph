@@ -19,7 +19,7 @@ class ApngWriter:
         try:
             import cairosvg
         except ImportError as exc:  # pragma: no cover
-            raise RuntimeError("APNG export needs cairosvg: install nodal[apng]") from exc
+            raise RuntimeError("APNG export needs cairosvg: install predictygraph[apng]") from exc
         from PIL import Image
         png = cairosvg.svg2png(bytestring=svg.encode(), scale=self.scale)
         return Image.open(io.BytesIO(png)).convert("RGBA")

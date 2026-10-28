@@ -30,13 +30,13 @@ class SceneBuilder:
     # ------------------------------------------------------------ public
     def build(self) -> Scene:
         root = self.doc.root
-        edges_layer = Elem("group", cls="nodal-edges")
+        edges_layer = Elem("group", cls="pdg-edges")
         edge_elems = [self.edge(e) for e in self.doc.edges]
-        self.title_layer = Elem("group", cls="nodal-titles")
-        groups_layer = Elem("group", cls="nodal-groups",
+        self.title_layer = Elem("group", cls="pdg-titles")
+        groups_layer = Elem("group", cls="pdg-groups",
                             children=[self.group(c) for c in root.children if isinstance(c, Group)])
         edges_layer.children = edge_elems
-        nodes_layer = Elem("group", cls="nodal-nodes",
+        nodes_layer = Elem("group", cls="pdg-nodes",
                            children=[self.node(c) for c in self.doc.walk() if isinstance(c, Node)])
         layers = [groups_layer, edges_layer, nodes_layer]
         if self.title_layer.children:
@@ -98,7 +98,7 @@ class SceneBuilder:
                 dash = f"{max(4.0, sw * 4):g} {max(3.0, sw * 3):g}"
                 el.paint["stroke-dasharray"] = dash
             if mode == "glow":
-                halo = Elem(el.kind, cls="nodal-border-glow", geom=dict(el.geom),
+                halo = Elem(el.kind, cls="pdg-border-glow", geom=dict(el.geom),
                             paint={"fill": "none", "stroke": stroke, "stroke-width": sw},
                             tracks=border_tracks("glow", sw, dash, dur))
                 return [halo, el]
@@ -108,7 +108,7 @@ class SceneBuilder:
     def node(self, n: Node) -> Elem:
         st = n.style
         shape = n.attrs.get("shape", "box")
-        out = Elem("group", id=n.id, cls=" ".join(["nodal-node"] + n.classes), children=self.shape(n, shape, st))
+        out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.shape(n, shape, st))
         fs = px(st.get("font-size"), 14)
         if n.image:
             img = n.image
@@ -135,7 +135,7 @@ class SceneBuilder:
 
     def group(self, g: Group) -> Elem:
         st = g.style
-        out = Elem("group", id=g.id, cls=" ".join(["nodal-group"] + g.classes),
+        out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
                    children=self.shape(g, g.attrs.get("shape", "box"), st))
         if g.label:
             fs = px(st.get("font-size"), 12)
@@ -160,10 +160,10 @@ class SceneBuilder:
                 fill = st.get("fill", "none")
                 if fill in ("none", "transparent"):
                     fill = self.doc.root.style.get("background", "#ffffff")
-                patch = Elem("rect", cls="nodal-title-bg",
+                patch = Elem("rect", cls="pdg-title-bg",
                              geom={"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1], "rx": 3},
                              paint={"fill": fill})
-                self.title_layer.children.append(Elem("group", cls="nodal-group-title", children=[patch] + texts))
+                self.title_layer.children.append(Elem("group", cls="pdg-group-title", children=[patch] + texts))
             else:
                 out.children += texts
         for c in g.children:
@@ -249,26 +249,26 @@ class SceneBuilder:
         segs = R.path_segs(pts, axis, route, radius, stub, level, diag)
         self.edge_polys[e.id] = R.polyline(pts, axis, route, radius, stub, level, diag)
 
-        cls = " ".join(["nodal-edge"] + e.classes)
+        cls = " ".join(["pdg-edge"] + e.classes)
         flow = st.get("flow", "none")
         if flow == "auto":
             flow = {"end": "forward", "start": "reverse", "both": "both"}.get(arrow, "forward")
         flowing = flow in ("forward", "reverse", "both")
         if flowing:
-            cls += f" nodal-flow nodal-flow-{flow}"
+            cls += f" pdg-flow pdg-flow-{flow}"
         out = Elem("group", id=e.id, cls=cls)
         base = {"fill": "none", "stroke": color, "stroke-linejoin": "round"}
         if not flowing:
             p = dict(base, **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round"})
             if dash:
                 p["stroke-dasharray"] = dash
-            out.children.append(Elem("path", cls="nodal-line", geom={"segs": segs}, paint=p))
+            out.children.append(Elem("path", cls="pdg-line", geom={"segs": segs}, paint=p))
         else:
             fdash = dash or f"0.1 {max(6.0, width * 4):g}"
             fwidth = width if dash else max(width * 1.8, 2.5)
             dur = seconds(st.get("flow-speed"), 1.2)
             if not dash:  # faint guide line under the moving dots
-                out.children.append(Elem("path", cls="nodal-line", geom={"segs": segs},
+                out.children.append(Elem("path", cls="pdg-line", geom={"segs": segs},
                                          paint=dict(base, **{"stroke-width": max(0.75, width * 0.5),
                                                              "stroke-opacity": 0.3})))
             dirs = ["forward", "reverse"] if flow == "both" else [flow]
@@ -276,7 +276,7 @@ class SceneBuilder:
                 tracks = flow_tracks(fdash, dur, fd == "reverse")
                 if flow == "both" and k == 1:
                     tracks = [t.shifted(dash_len(fdash) / 2) for t in tracks]
-                out.children.append(Elem("path", cls=f"nodal-line nodal-flow-{fd}", geom={"segs": segs},
+                out.children.append(Elem("path", cls=f"pdg-line pdg-flow-{fd}", geom={"segs": segs},
                                          paint=dict(base, **{"stroke-width": fwidth, "stroke-dasharray": fdash,
                                                              "stroke-linecap": "round"}),
                                          tracks=tracks))
@@ -307,7 +307,7 @@ class SceneBuilder:
         er = {"one": [bar(hl * 0.5), bar(hl * 0.9)], "many": [crow], "zero-one": [bar(hl * 0.5), ring],
               "zero-many": [crow, ring], "one-many": [crow, bar(hl * 1.3)]}
         if kind in ER_HEADS:
-            return Elem("group", cls="nodal-head", children=er[kind])
+            return Elem("group", cls="pdg-head", children=er[kind])
         shapes = {
             "open": ("polyline", [P(hl, hw), P(0, 0), P(hl, -hw)], dict(line, **{"stroke-linejoin": "miter"})),
             "diamond": ("polygon", [P(0, 0), P(hl / 2, hw), P(hl, 0), P(hl / 2, -hw)], {"fill": color}),
@@ -315,9 +315,9 @@ class SceneBuilder:
         }
         if kind == "dot":
             c = P(hl / 2.2, 0)
-            return Elem("circle", cls="nodal-head", geom={"cx": c[0], "cy": c[1], "r": hl / 2.2}, paint={"fill": color})
+            return Elem("circle", cls="pdg-head", geom={"cx": c[0], "cy": c[1], "r": hl / 2.2}, paint={"fill": color})
         tag, pts, paint = shapes.get(kind, ("polygon", [P(0, 0), P(hl, hw), P(hl, -hw)], {"fill": color}))
-        return Elem(tag, cls="nodal-head", geom={"points": pts}, paint=paint)
+        return Elem(tag, cls="pdg-head", geom={"points": pts}, paint=paint)
 
     def edge_label(self, e, poly) -> list[Elem]:
         st = e.label_style or e.style
@@ -339,7 +339,7 @@ class SceneBuilder:
                 t = ((lvl + a1) / 2 - a0) / (a1 - a0)
         mx, my = ax + (bx - ax) * t, ay + (by - ay) * t
         bg = st.get("background", self.doc.root.style.get("background", "#ffffff"))
-        box = Elem("rect", cls="nodal-label-bg", geom={"x": mx - w / 2 - 3, "y": my - h / 2 - 1, "w": w + 6,
+        box = Elem("rect", cls="pdg-label-bg", geom={"x": mx - w / 2 - 3, "y": my - h / 2 - 1, "w": w + 6,
                                                        "h": h + 2, "rx": 3},
                    paint={"fill": bg, "fill-opacity": 0.9})
         return [box] + self.text(lines, mx, my - h / 2, fs, st)

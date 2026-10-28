@@ -29,7 +29,7 @@ def find_theme(name: str, base_dir: str = ".") -> Path:
     cand = Path(base_dir) / name
     if name.endswith(".toml") and cand.exists():
         return cand
-    dirs = [d for d in os.environ.get("NODAL_THEME_PATH", "").split(os.pathsep) if d] + [str(BUNDLED)]
+    dirs = [d for d in os.environ.get("PDG_THEME_PATH", "").split(os.pathsep) if d] + [str(BUNDLED)]
     for d in dirs:
         p = Path(d) / f"{name}.toml"
         if p.exists():

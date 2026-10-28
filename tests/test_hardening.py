@@ -1,10 +1,10 @@
 """Hardening: number parsing, var() expansion, path confinement, limits."""
 import pytest
 
-from nodal import NodalSyntaxError, build_scene, parse, render
-from nodal.anim import Track, dash_len, seconds
-from nodal.safe import MAX_VAR_LEN, UnsafePathError
-from nodal.style import StyleSheet, px
+from predictygraph import PdgSyntaxError, build_scene, parse, render
+from predictygraph.anim import Track, dash_len, seconds
+from predictygraph.safe import MAX_VAR_LEN, UnsafePathError
+from predictygraph.style import StyleSheet, px
 
 
 @pytest.mark.parametrize("v,want", [(".", 0.0), ("1.2.3", 1.2), ("-.5px", -0.5), ("1e999", 1e6), ("abc", 0.0)])
@@ -57,12 +57,12 @@ def test_allow_outside(tmp_path):
 
 def test_edge_cap():
     side = ",".join(f"n{i}" for i in range(101))
-    with pytest.raises(NodalSyntaxError, match="too many edges"):
+    with pytest.raises(PdgSyntaxError, match="too many edges"):
         parse(f"{side} -> {side}\n")
 
 
 def test_overlong_arrow_rejected():
-    with pytest.raises(NodalSyntaxError):
+    with pytest.raises(PdgSyntaxError):
         parse("a " + "-" * 50000 + "> b\n")
 
 

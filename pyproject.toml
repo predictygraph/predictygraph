@@ -1,7 +1,7 @@
 [project]
-name = "nodal"
+name = "predictygraph"
 version = "0.1.0"
-description = "Readable, CSS-styled diagram DSL with per-group layouts, rendered to static SVG"
+description = "Predictable graphs: a readable, CSS-styled diagram DSL with per-group layouts, rendered to SVG/APNG"
 authors = [{name = "Reza Jelveh", email = "git@jelveh.me"}]
 dependencies = ["tinycss2>=1.5.1", "typer>=0.26.8", "pillow>=11.0.0"]
 requires-python = ">=3.11"
@@ -12,7 +12,8 @@ license = {text = "GPL-3.0-or-later"}
 apng = ["cairosvg>=2.7"]
 
 [project.scripts]
-nodal = "nodal.cli:app"
+predictygraph = "predictygraph.cli:app"
+pdg = "predictygraph.cli:app"
 
 [build-system]
 requires = ["pdm-backend"]

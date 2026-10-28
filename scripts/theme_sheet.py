@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render one .nod file in several themes and tile the results into one PNG."""
+"""Render one .pdg file in several themes and tile the results into one PNG."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ class ThemeSheet:
     def render(self, theme: str) -> Path:
         svg = self.outdir / f"{self.src.stem}-{theme}.svg"
         png = svg.with_suffix(".png")
-        subprocess.run(["uv", "run", "-q", "nodal", str(self.src), "--theme", theme, "-o", str(svg)], check=True)
+        subprocess.run(["uv", "run", "-q", "predictygraph", str(self.src), "--theme", theme, "-o", str(svg)], check=True)
         subprocess.run(["uv", "run", "-q", "--with", "cairosvg", "cairosvg", str(svg), "-o", str(png),
                         "-s", str(self.scale)], check=True)
         print(png)

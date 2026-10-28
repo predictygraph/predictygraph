@@ -1,6 +1,6 @@
 """Scene IR: a laid-out, routed, fully styled diagram, independent of output format.
 
-Pipeline (same shape as slidr):  .nod text → AST (model.Document) → layout + routing
+Pipeline (same shape as slidr):  .pdg text → AST (model.Document) → layout + routing
 → Scene IR (this module) → output handlers (render/svg.py, render/apng.py, ...).
 
 Everything a writer needs is resolved here: absolute geometry, paint, text lines and

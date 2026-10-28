@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Debug: show router channels, needs and extra gaps per layout pass for a .nod file."""
+"""Debug: show router channels, needs and extra gaps per layout pass for a .pdg file."""
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
-from nodal import _style
-from nodal.layout import layout
-from nodal.parser import parse_file
-from nodal.route import Router
+from predictygraph import _style
+from predictygraph.layout import layout
+from predictygraph.parser import parse_file
+from predictygraph.route import Router
 
 
 class RouteDebug:

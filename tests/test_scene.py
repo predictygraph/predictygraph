@@ -1,8 +1,8 @@
 """Scene IR + routing behaviour: lanes, rank clearance, title clearance, writers."""
 import re
 
-from nodal import build_scene, parse, render, write_svg
-from nodal.ir import Scene
+from predictygraph import build_scene, parse, render, write_svg
+from predictygraph.ir import Scene
 
 
 def _scene(src):
@@ -59,7 +59,7 @@ def test_runs_keep_clear_of_boxes_and_gap_widens():
 
 
 def test_group_title_is_not_crossed():
-    from nodal.text import measure
+    from predictygraph.text import measure
     src = '''graph dir=TB route=bend
 a
 group g "A LONG GROUP TITLE" layout=row { b; c }

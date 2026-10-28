@@ -1,4 +1,4 @@
-"""Nodal: readable diagram DSL -> Scene IR -> SVG / APNG.
+"""Predictygraph: readable diagram DSL -> Scene IR -> SVG / APNG.
 
 Pipeline (mirrors slidr):
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .ir import Scene
 from .layout import layout
-from .parser import NodalSyntaxError, parse, parse_file
+from .parser import PdgSyntaxError, parse, parse_file
 from .render import write_apng, write_svg
 from .route import Router
 from .scene import SceneBuilder
@@ -22,7 +22,7 @@ from .style import apply_styles
 from .theme import ThemeError, list_themes, theme_css
 
 __all__ = ["render", "render_file", "build_scene", "scene_from_file", "parse", "parse_file",
-           "write_svg", "write_apng", "Scene", "NodalSyntaxError", "ThemeError", "list_themes"]
+           "write_svg", "write_apng", "Scene", "PdgSyntaxError", "ThemeError", "list_themes"]
 
 MAX_PASSES = 4
 

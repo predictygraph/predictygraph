@@ -1,4 +1,4 @@
-"""nodal CLI: .nod -> Scene IR -> .svg (animated or static) or .png (APNG)."""
+"""predictygraph CLI: .pdg -> Scene IR -> .svg (animated or static) or .png (APNG)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,12 +7,12 @@ import typer
 
 from . import list_themes, scene_from_file, write_apng, write_svg
 
-app = typer.Typer(add_completion=False, help="Render Nodal diagrams to SVG or APNG.")
+app = typer.Typer(add_completion=False, help="Render Predictygraph diagrams to SVG or APNG.")
 
 
 @app.command()
 def main(
-    src: Path = typer.Argument(None, help="Input .nod file"),
+    src: Path = typer.Argument(None, help="Input .pdg file"),
     out: Path | None = typer.Option(None, "-o", "--out", help="Output .svg or .png (default: <src>.svg)"),
     css: list[Path] = typer.Option([], "--css", help="Extra stylesheet(s), applied after the file's own"),
     theme: str | None = typer.Option(None, "--theme", help="Theme name or .toml path (overrides graph theme=)"),

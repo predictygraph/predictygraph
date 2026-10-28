@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape, quoteattr
 
 from ..ir import Elem, Scene
 
-SHADOW = ('<filter id="nodal-shadow" x="-20%" y="-20%" width="140%" height="150%">'
+SHADOW = ('<filter id="pdg-shadow" x="-20%" y="-20%" width="140%" height="150%">'
           '<feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.18"/></filter>')
 
 
@@ -36,7 +36,7 @@ class SvgWriter:
         a = {}
         for k, v in el.paint.items():
             if k == "filter":
-                a["filter"] = f"url(#nodal-{v})"
+                a["filter"] = f"url(#pdg-{v})"
             else:
                 a[k] = num(v)
         for tr in el.tracks:
@@ -105,7 +105,7 @@ class SvgWriter:
             defs.append(SHADOW)
         head = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
                 f'width="{s.width:.0f}" height="{s.height:.0f}" viewBox="0 0 {num(s.width)} {num(s.height)}" '
-                f'class="nodal">']
+                f'class="predictygraph">']
         if defs:
             head.append("<defs>" + "".join(defs) + "</defs>")
         if s.background:

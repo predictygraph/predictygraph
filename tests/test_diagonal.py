@@ -1,4 +1,4 @@
-from nodal.route import Diagonal, octilinear
+from predictygraph.route import Diagonal, octilinear
 
 
 def _oct(p0, p1, axis="v", mid=None, stub=10, diag_max=40.0, angle=45.0):

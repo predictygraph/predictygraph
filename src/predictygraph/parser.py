@@ -1,4 +1,4 @@
-"""Line-oriented parser for the Nodal DSL (see docs/SPEC.md)."""
+"""Line-oriented parser for the Predictygraph DSL (see docs/SPEC.md)."""
 from __future__ import annotations
 
 import re
@@ -8,7 +8,7 @@ from .model import Document, Edge, Group, Node
 from .safe import MAX_EDGES, safe_path
 
 
-class NodalSyntaxError(ValueError):
+class PdgSyntaxError(ValueError):
     def __init__(self, msg: str, line: int):
         super().__init__(f"line {line}: {msg}")
         self.line = line
@@ -63,7 +63,7 @@ def tokenize(text: str, lineno: int) -> list[tuple[str, str]]:
     while pos < len(text):
         m = TOKEN_RE.match(text, pos)
         if not m:
-            raise NodalSyntaxError(f"unexpected {text[pos:pos + 12]!r}", lineno)
+            raise PdgSyntaxError(f"unexpected {text[pos:pos + 12]!r}", lineno)
         kind = m.lastgroup
         if kind != "ws":
             toks.append((kind, m.group()))
@@ -126,7 +126,7 @@ class Parser:
             elif kind == "punct" and val == "{":
                 pass
             else:
-                raise NodalSyntaxError(f"unexpected token {val!r}", lineno)
+                raise PdgSyntaxError(f"unexpected token {val!r}", lineno)
         return label, classes, attrs
 
     def _get_node(self, nid: str, lineno: int):
@@ -148,7 +148,7 @@ class Parser:
                 return existing
             if cls is Node and isinstance(existing, Node):
                 return existing  # re-declaration merges attributes
-            raise NodalSyntaxError(f"duplicate id {item_id!r}", lineno)
+            raise PdgSyntaxError(f"duplicate id {item_id!r}", lineno)
         item = cls(id=item_id, parent=self.scope)
         self.scope.children.append(item)
         self.doc.items[item_id] = item
@@ -160,16 +160,16 @@ class Parser:
         head = toks[0][1]
         if toks == [("punct", "}")]:
             if len(self.stack) == 1:
-                raise NodalSyntaxError("unbalanced '}'", lineno)
+                raise PdgSyntaxError("unbalanced '}'", lineno)
             self.stack.pop()
             return
         if "arrow" in kinds:
             return self.edge(toks, lineno)
         if toks[0][0] != "ident":
-            raise NodalSyntaxError(f"statement cannot start with {head!r}", lineno)
+            raise PdgSyntaxError(f"statement cannot start with {head!r}", lineno)
         if head == "graph" and (len(toks) == 1 or toks[1][0] != "string"):
             if self.scope is not self.root:
-                raise NodalSyntaxError("'graph' only allowed at top level", lineno)
+                raise PdgSyntaxError("'graph' only allowed at top level", lineno)
             _, classes, attrs = self._tail(toks, 1, lineno)
             self.root.classes += classes
             self.root.attrs.update(attrs)
@@ -187,7 +187,7 @@ class Parser:
             return
         if head == "group" and len(toks) >= 2 and toks[1][0] == "ident":
             if toks[-1] != ("punct", "{"):
-                raise NodalSyntaxError("group needs '{'", lineno)
+                raise PdgSyntaxError("group needs '{'", lineno)
             g = self._declare(toks[1][1], lineno, cls=Group)
             g.label, g.classes, g.attrs = self._tail(toks[:-1], 2, lineno)
             self._apply_defaults(g, "group")
@@ -222,14 +222,14 @@ class Parser:
                 pass
             elif kind == "arrow":
                 if not groups[-1]:
-                    raise NodalSyntaxError("arrow without source", lineno)
+                    raise PdgSyntaxError("arrow without source", lineno)
                 arrows.append(parse_arrow(val))
                 groups.append([])
             else:
                 break
             i += 1
         if not groups[-1]:
-            raise NodalSyntaxError("arrow without target", lineno)
+            raise PdgSyntaxError("arrow without target", lineno)
         label, classes, attrs = self._tail(toks, i, lineno)
         defaults: dict[str, str] = {}
         for g in reversed([self.scope] + self.scope.ancestors()):
@@ -240,7 +240,7 @@ class Parser:
                 self._get_node(nid, lineno)
         count = sum(len(s) * len(d) for s, d in zip(groups, groups[1:]))
         if len(self.doc.edges) + count > MAX_EDGES:
-            raise NodalSyntaxError(f"too many edges (limit {MAX_EDGES})", lineno)
+            raise PdgSyntaxError(f"too many edges (limit {MAX_EDGES})", lineno)
         for (srcs, dsts), (arrow, body) in zip(zip(groups, groups[1:]), arrows):
             for s in srcs:
                 for d in dsts:
@@ -275,7 +275,7 @@ class Parser:
                     buf.append("\n")
                     i += 1
                     if i >= len(lines):
-                        raise NodalSyntaxError("unterminated css block", lineno)
+                        raise PdgSyntaxError("unterminated css block", lineno)
                     rest = lines[i]
                 self.doc.stylesheets.append(("".join(buf), self.doc.base_dir))
                 tail = strip_comment(rest[j + 1:]).strip()
@@ -289,11 +289,11 @@ class Parser:
                     self.statement(stmt, lineno)
             i += 1
         if len(self.stack) != 1:
-            raise NodalSyntaxError(f"unclosed group {self.stack[-1].id!r}", len(lines))
+            raise PdgSyntaxError(f"unclosed group {self.stack[-1].id!r}", len(lines))
         for e in self.doc.edges:
             for nid in (e.src, e.dst):
                 if nid not in self.doc.items:
-                    raise NodalSyntaxError(f"unknown id {nid!r}", 0)
+                    raise PdgSyntaxError(f"unknown id {nid!r}", 0)
         return self.doc
 
 
