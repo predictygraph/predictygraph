@@ -351,7 +351,8 @@ class Emitter:
                 if str(a.get("constraint", "")).lower() != "false" and rank.get(d, 0) <= rank.get(s, 0) and s != d:
                     if not any(s in grp and d in grp for grp in self.g.same_rank):
                         rank[d] = rank[s] + 1
-        return rank
+        low = min(rank.values(), default=0)  # first rank is always 0
+        return {n: r - low for n, r in rank.items()}
 
     def emit(self) -> str:
         g = self.g
