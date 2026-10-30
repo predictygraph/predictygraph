@@ -20,6 +20,7 @@ from .style import px
 LANE = 9.0    # distance between parallel lanes
 CLEAR = 12.0  # min distance between a horizontal run and the boxes above/below it
 RECT_SHAPES = {"box", "square", "round", "pill", "cylinder", "note", "image", "none"}
+ROUND_SHAPES = {"circle", "ellipse", "diamond"}
 
 
 def lca(a, b, root):
@@ -60,6 +61,23 @@ def boundary_point(n, tx, ty, shape):
 def port(n, side):
     return {"top": (n.cx, n.ay), "bottom": (n.cx, n.ay + n.h),
             "left": (n.ax, n.cy), "right": (n.ax + n.w, n.cy)}[side]
+
+
+def on_outline(n, p, vert):
+    """Move a port that was shifted along a side back onto the node's outline.
+    Boxes are flat, so only circles, ellipses and diamonds need it: the point slides
+    along the flow axis until it touches the curve (or slanted edge)."""
+    shape = n.attrs.get("shape", "box")
+    if isinstance(n, Group) or shape not in ROUND_SHAPES:
+        return p
+    hw, hh = n.w / 2, n.h / 2
+    if vert:
+        u = min(abs(p[0] - n.cx) / hw, 1.0)
+        reach = hh * (math.sqrt(1 - u * u) if shape != "diamond" else 1 - u)
+        return p[0], n.cy + math.copysign(reach, p[1] - n.cy)
+    u = min(abs(p[1] - n.cy) / hh, 1.0)
+    reach = hw * (math.sqrt(1 - u * u) if shape != "diamond" else 1 - u)
+    return n.cx + math.copysign(reach, p[0] - n.cx), p[1]
 
 
 @dataclass
@@ -166,42 +184,48 @@ class Router:
 
     # ------------------------------------------------------------ passes
     def _parallel_offsets(self):
+        """Edges between the same two nodes get side-by-side lanes. The offset is in
+        absolute coordinates, so an edge and its reverse simply take different lanes."""
         pairs: dict[tuple[str, str], list[Edge]] = {}
         for e in self.doc.edges:
             pairs.setdefault(tuple(sorted((e.src, e.dst))), []).append(e)
         for es in pairs.values():
             n = len(es)
             for i, e in enumerate(es):
-                k = (i - (n - 1) / 2) * 12
-                # opposite-direction edges get mirrored sign so they stay apart
-                self.offset[e.id] = k if e.src <= e.dst else -k
+                self.offset[e.id] = (i - (n - 1) / 2) * 12
 
     def _spread_ports(self):
         """Several curved/bent edges on one side of a node: spread them symmetrically
-        around the side's middle (ordered by where they go)."""
+        around the side's middle, ordered by where they go, so they don't cross.
+        Parallel edges (same two nodes) take part too, which keeps them apart and in
+        the same order at both ends."""
         sides: dict[tuple[str, str], list] = {}
-        for e in self.doc.edges:
-            if e.attrs.get("exit") or e.attrs.get("enter") or self.offset.get(e.id):
-                continue
-            pts, axis = self.geometry(e)
-            if axis not in ("v", "h"):
-                continue
-            a, b = self.doc.items[e.src], self.doc.items[e.dst]
-            if flow_dir(lca(a, b, self.doc.root)) == "auto" or e.style.get("route", "curve") in ("straight", "ortho"):
-                continue  # ortho fan-in/out merges into a bus instead
-            i = 0 if axis == "v" else 1
-            for end, node, here, there in ((0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
-                                           (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0])):
-                side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else \
-                       ("right" if there[0] > here[0] else "left")
-                sides.setdefault((node.id, side), []).append((there[i], e.id, end))
+        saved, self.offset = self.offset, {}  # order by the unshifted geometry
+        try:
+            for e in self.doc.edges:
+                if e.attrs.get("exit") or e.attrs.get("enter"):
+                    continue
+                pts, axis = self.geometry(e)
+                if axis not in ("v", "h"):
+                    continue
+                a, b = self.doc.items[e.src], self.doc.items[e.dst]
+                if flow_dir(lca(a, b, self.doc.root)) == "auto" or e.style.get("route", "curve") in ("straight", "ortho"):
+                    continue  # ortho fan-in/out merges into a bus instead
+                i = 0 if axis == "v" else 1
+                for end, node, here, there in ((0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
+                                               (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0])):
+                    side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else \
+                           ("right" if there[0] > here[0] else "left")
+                    sides.setdefault((node.id, side), []).append((there[i], e.id, end))
+        finally:
+            self.offset = saved
         for (nid, side), lst in sides.items():
             if len(lst) < 2:
                 continue
             n = self.doc.items[nid]
-            if n.attrs.get("shape", "box") in ("diamond", "circle", "ellipse") and not isinstance(n, Group):
-                continue
             span = n.w if side in ("top", "bottom") else n.h
+            if n.attrs.get("shape", "box") in ROUND_SHAPES and not isinstance(n, Group):
+                span *= 0.6  # stay on the part of the outline that faces the side
             step = min(18.0, (span - 12) / (len(lst) - 1)) if span > 12 else 0.0
             lst.sort()
             for k, (_, eid, end) in enumerate(lst):
@@ -371,18 +395,21 @@ class Router:
             elif not wps:
                 self._record_channel(e, owner, da, db, vert)
             p0, p1 = self._ports(a, b, vert)
+            spread = (e.id, 0) in self.port_shift or (e.id, 1) in self.port_shift
             s0, s1 = self.port_shift.get((e.id, 0), 0.0), self.port_shift.get((e.id, 1), 0.0)
             if vert:
                 p0, p1 = (p0[0] + s0, p0[1]), (p1[0] + s1, p1[1])
             else:
                 p0, p1 = (p0[0], p0[1] + s0), (p1[0], p1[1] + s1)
-            if s0 or s1:
+            if spread:
+                p0, p1 = on_outline(a, p0, vert), on_outline(b, p1, vert)
                 return [p0] + wps + [p1], ("v" if vert else "h")
             if off:
                 if vert:
                     p0, p1 = (p0[0] + off, p0[1]), (p1[0] + off, p1[1])
                 else:
                     p0, p1 = (p0[0], p0[1] + off), (p1[0], p1[1] + off)
+                p0, p1 = on_outline(a, p0, vert), on_outline(b, p1, vert)
             # boxes overlap on the cross axis: one straight line, no jog / double trace
             boxy = all(x.attrs.get("shape", "box") in RECT_SHAPES or isinstance(x, Group) for x in (a, b))
             if not wps and not off and boxy:
