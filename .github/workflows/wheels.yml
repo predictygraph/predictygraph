@@ -46,9 +46,16 @@ jobs:
         shell: bash
         run: |
           uv venv
-          uv pip install dist/*.whl pytest
+          # the PNG extra needs the cairo library: preinstalled on Ubuntu runners only,
+          # so the PNG test runs there and skips on macOS and Windows
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            whl=$(ls dist/*.whl)
+            uv pip install "${whl}[apng]" pytest
+          else
+            uv pip install dist/*.whl pytest
+          fi
           mv src src.off 2>/dev/null || true
-          uv run --no-project pytest
+          uv run --no-project pytest -rs
           uv run --no-project pdg --help
 
   publish:
