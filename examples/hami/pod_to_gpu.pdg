@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# How HAMi gets a Pod onto a shared GPU (after the HAMi docs figure).
+# Shows: sub= second lines, numbered steps, header bands, accent bars, a dashed box,
+# and a notes panel.
+graph layout=row theme=hami caption="How a Pod with nvidia.com/gpumem gets a slice of a GPU"
+
+group cp "Control plane" sub="decides where the Pod runs" layout=column {
+  pod "Pod" sub="nvidia.com/gpumem: 3000"
+  webhook "MutatingWebhook" sub="sets schedulerName: hami-scheduler" .blue
+  sched "HAMi scheduler" sub="extender next to kube-scheduler\npicks a node and a card" .blue
+  group talk "How the two sides talk" layout=column .notes {
+    nodeann "Node annotation" sub="device plugin → scheduler\nUUID, memory, cores of each card" .green .note
+    podann "Pod annotation" sub="scheduler → device plugin\nthe chosen card and the Pod's share" .purple .note
+  }
+}
+
+group node "GPU node" sub="sets up the container and enforces the limits" layout=column gap=40 .green {
+  kubelet "kubelet" sub="starts the Pod"
+  plugin "HAMi device plugin" sub="reads the Pod annotation" .green
+  group ctr "Container" layout=column .container {
+    app "Your application"
+    core "HAMi-Core · libvgpu.so" sub="checks memory and kernel calls\nCUDA_DEVICE_MEMORY_LIMIT_0=3000m" .core
+    cuda "CUDA / NVML libraries"
+  }
+  gpu "GPU"
+}
+
+pod -> webhook step=1
+webhook -> sched step=2
+sched -> kubelet "bind to node"
+kubelet -> plugin "Allocate()" step=3
+plugin -> ctr "mounts the GPU and libvgpu.so" step=4
+ctr -> gpu step=5
+
+css {
+  group.notes { fill: #ffffff; stroke-dasharray: 4 3; title-fill: none; font-size: 12px; }
+  node.note { fill: #ffffff; stroke: none; text-align: left; font-weight: 600; }
+  node.note.green  { color: var(--green); accent-bar: 3px var(--green); }
+  node.note.purple { color: var(--purple); accent-bar: 3px var(--purple); }
+  group.container { fill: #ffffff; stroke: #64748b; stroke-dasharray: 6 4; title-fill: none;
+                    font-weight: normal; }
+  node.core { fill: var(--green); stroke: var(--green); color: #ffffff; }
+  node.core sub { color: #dcfce7; }
+  #gpu { stroke: var(--green); }
+}

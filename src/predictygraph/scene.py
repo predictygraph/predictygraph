@@ -193,7 +193,7 @@ class SceneBuilder:
     def accent(self, it, st) -> list[Elem]:
         """`accent-bar: 4px #22c55e` draws a strip inside the box edge (`accent-side`)."""
         spec = st.get("accent-bar")
-        if not spec:
+        if not spec or spec.strip() == "none":
             return []
         parts = spec.split()
         bw = px(parts[0], 4)
@@ -209,7 +209,7 @@ class SceneBuilder:
         out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
                    children=self.shape(g, g.attrs.get("shape", "box"), st))
         out.children += self.accent(g, st)
-        if g.label and st.get("title-fill"):
+        if g.label and st.get("title-fill") not in (None, "none") and st.get("label-position", "top") != "bottom":
             pt = box4(st.get("padding"), 14)[0]
             bh = pt + g.label_h - 3
             r = px(st.get("border-radius"), 8)
@@ -368,13 +368,16 @@ class SceneBuilder:
             out.children.append(self.head(kind, tip, dvec, hl, color, width,
                                           self.doc.root.style.get("background", "#ffffff")))
         if e.label:
-            out.children += self.edge_label(e, self.edge_polys[e.id])
+            lab = self.edge_label(e, self.edge_polys[e.id])
+            out.children += lab
         if e.attrs.get("step"):
-            out.children += self.step_badge(e, self.edge_polys[e.id])
+            box = lab[0].geom if e.label else None
+            out.children += self.step_badge(e, self.edge_polys[e.id], box)
         return out
 
-    def step_badge(self, e, poly) -> list[Elem]:
-        """Numbered circle on the edge, a third of the way along its path (labels sit mid-way)."""
+    def step_badge(self, e, poly, label_box=None) -> list[Elem]:
+        """Numbered circle on the edge, a third of the way along its path. With a label the
+        badge sits just left of the label box, so neither covers the other."""
         st = e.step_style or e.style
         fs = px(st.get("font-size"), 11)
         txt = e.attrs["step"][:3]
@@ -389,6 +392,8 @@ class SceneBuilder:
                 cx, cy = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
                 break
             acc += l
+        if label_box:
+            cx, cy = label_box["x"] - r - 3, label_box["y"] + label_box["h"] / 2
         circ = Elem("circle", cls="pdg-step", geom={"cx": cx, "cy": cy, "r": r},
                     paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"),
                            "stroke-width": 1.5})

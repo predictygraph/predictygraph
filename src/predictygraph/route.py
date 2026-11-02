@@ -365,6 +365,19 @@ class Router:
         if da.id in ri and db.id in ri and abs(ri[da.id] - ri[db.id]) == 1:
             self.gapkey[e.id] = (owner.id, min(ri[da.id], ri[db.id]))
 
+    def span_items(self, a, b):
+        """Leaf nodes overlapping the band between a and b (both axes), plus a and b:
+        the things a same-side C-shaped edge must go around."""
+        x0, x1 = min(a.ax, b.ax), max(a.ax + a.w, b.ax + b.w)
+        y0, y1 = min(a.ay, b.ay), max(a.ay + a.h, b.ay + b.h)
+        out = [a, b]
+        for it in self.doc.walk():
+            if isinstance(it, Group) or it in (a, b):
+                continue
+            if it.ay < y1 and it.ay + it.h > y0 and it.ax < x1 and it.ax + it.w > x0:
+                out.append(it)
+        return out
+
     def geometry(self, e: Edge):
         """-> (points, axis). axis: v | h (flow axis), L (explicit L port) or free."""
         a, b = self.doc.items[e.src], self.doc.items[e.dst]
@@ -383,6 +396,17 @@ class Router:
             if v0 != v1:  # L-shape: one corner
                 corner = (p0[0], p1[1]) if v0 else (p1[0], p0[1])
                 return [p0, corner, p1], "L"
+            if ex == en and not wps:  # same side: C-shape around everything in between
+                gap = px(e.style.get("stub"), 24) if e.style.get("stub") else 24.0
+                if ex in ("left", "right"):
+                    lo = min(it.ax for it in self.span_items(a, b)) if ex == "left" else None
+                    hi = max(it.ax + it.w for it in self.span_items(a, b)) if ex == "right" else None
+                    x = lo - gap if ex == "left" else hi + gap
+                    return [p0, (x, p0[1]), (x, p1[1]), p1], "L"
+                lo = min(it.ay for it in self.span_items(a, b)) if ex == "top" else None
+                hi = max(it.ay + it.h for it in self.span_items(a, b)) if ex == "bottom" else None
+                y = lo - gap if ex == "top" else hi + gap
+                return [p0, (p0[0], y), (p1[0], y), p1], "L"
             return [p0] + wps + [p1], ("v" if v0 else "h")
         if d in ("TB", "BT", "LR", "RL") and route != "straight":
             vert = d in ("TB", "BT")

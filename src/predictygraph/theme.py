@@ -56,6 +56,8 @@ def load_theme(name: str, base_dir: str = ".", _seen=()) -> dict:
         parent = load_theme(data["extends"], str(path.parent), _seen + (name,))
         for sect in ("palette", "roles", "shape"):
             parent.setdefault(sect, {}).update(data.get(sect, {}))
+        if "css" in data:  # extra rules stack: parent's first, then the child's
+            parent["css"] = parent.get("css", "") + "\n" + data["css"]
         parent["name"] = data.get("name", name)
         parent["dark"] = data.get("dark", parent.get("dark", False))
         data = parent
@@ -104,4 +106,6 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines.append("node.solid { fill: var(--fg); stroke: var(--fg); color: var(--bg); }")
     if "edge-width" in shape:
         lines.append(f"edge {{ stroke-width: {shape['edge-width']}; }}")
+    if t.get("css"):  # free-form rules after the generated ones; var(--hue) works here
+        lines.append(t["css"])
     return "\n".join(lines) + "\n"

@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# NVIDIA kernel module hierarchy and the path from user space to the GPU
+# (after the HAMi docs figure). Shows: sub= lines, a dashed box inside a panel,
+# edge labels, three stacked panels with their own layouts.
+# Not yet supported (see SPEC): the side brackets "nvidia-smi needs the whole path" /
+# "lsmod checks only this layer" and the vertical panel labels; the panel subtitles
+# carry that text for now.
+graph layout=column align=stretch gap=10 theme=hami caption="NVIDIA driver modules and the path from user space to the GPU"
+
+group user "User space" sub="nvidia-smi needs the whole path" layout=row gap=60 .space {
+  group smi_col layout=column gap=18 .bare {
+    smi "nvidia-smi" .plain
+    nvml "libnvidia-ml.so" sub="NVML" .blue
+  }
+  group cuda_col layout=column gap=18 .bare {
+    app "CUDA application" .plain
+    libcuda "libcuda.so" sub="CUDA driver API" .blue
+  }
+}
+
+group kernel "Kernel space" sub="lsmod checks only this layer" layout=column gap=34 .green {
+  group compute "needed by compute workloads" layout=row gap=60 .compute {
+    nvidia "nvidia" sub="core GPU driver" .green
+    uvm "nvidia_uvm" sub="unified virtual memory" .green
+  }
+  group display layout=row gap=60 .bare {
+    modeset "nvidia_modeset" sub="display mode setting" .plain
+    drm "nvidia_drm" sub="Linux DRM interface" .plain
+  }
+}
+
+group hw "Hardware" layout=row .space {
+  gpu "NVIDIA GPU" .plain
+}
+
+smi -> nvml
+app -> libcuda
+nvml -> nvidia
+libcuda -> uvm "ioctl on /dev/nvidia*"
+uvm -> nvidia "depends on"
+modeset -> nvidia "depends on"
+drm -> modeset "depends on"
+nvidia -> gpu exit=left enter=left route=ortho
+
+css {
+  group.space { fill: #eff6ff; stroke: none; title-fill: none; }
+  group.green { title-fill: none; stroke: none; }
+  group.bare  { fill: none; stroke: none; padding: 0; }
+  group.compute { fill: none; stroke: #4ade80; stroke-dasharray: 6 4; padding: 10px;
+                  color: var(--green); font-weight: normal; font-size: 11px; label-position: bottom;
+                  text-align: right; }
+  node.plain { font-weight: 600; }
+  node.blue  { color: var(--blue); accent-bar: none; stroke: #38bdf8; }
+  node.green { color: var(--green); accent-bar: none; }
+  edge { stroke: #4b83a8; }
+}

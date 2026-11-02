@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The look of the HAMi documentation diagrams: soft blue panels with a header band,
+# white rounded boxes with a bold title and a grey second line (`sub=`), HAMi green
+# for highlighted components (accent bar on the left), numbered steps.
+schema = 1
+name = "hami"
+dark = false
+
+# extra rules after the generated palette CSS (must sit before the first [table])
+css = """
+graph { font-family: "Source Sans 3", "Source Sans Pro", Arial, Helvetica, "Liberation Sans", sans-serif; }
+node  { font-weight: 600; padding: 10px 14px; }
+sub   { color: var(--muted); font-size: 0.85em; }
+group { title-fill: #dbeafe; stroke: #bfdbfe; font-size: 13px; }
+group.green { title-fill: #dcfce7; stroke: #bbf7d0; fill: #f0fdf4; }
+node.green  { fill: #ffffff; stroke: var(--green); accent-bar: 4px var(--green); }
+node.blue   { fill: #ffffff; stroke: var(--blue); accent-bar: 4px var(--blue); }
+step  { fill: var(--green); color: #ffffff; }
+legend { stroke: var(--border); color: var(--fg); }
+caption { color: var(--muted); }
+"""
+
+[palette]
+bg = "#ffffff"
+bg-alt = "#f1f5f9"
+surface = "#ffffff"
+fg = "#1e293b"
+muted = "#64748b"
+border = "#cbd5e1"
+red = "#dc2626"
+orange = "#ea580c"
+yellow = "#ca8a04"
+green = "#16a34a"
+cyan = "#0891b2"
+blue = "#2563eb"
+purple = "#7c3aed"
+
+[roles]
+group-fill = "bg-alt"
+group-text = "fg"
+edge = "muted"
+
+[shape]
+radius = 10

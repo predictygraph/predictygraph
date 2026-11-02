@@ -91,7 +91,8 @@ Per-edge attributes override arrow defaults:
   a deliberate bus and stay merged; a dashed `..>` path into the same node is a
   distinct trace and gets its own lane.
 - `exit=top|bottom|left|right`, `enter=...` — pin the side an edge leaves/enters (port at the
-  side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner.
+  side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner. The same
+  side at both ends (`exit=left enter=left`) draws a C that goes around every box between.
 
 Automatic routing rules (layered layouts):
 - Edges between the same two nodes are offset in parallel; `A <-> B` draws one double-headed edge.
@@ -117,6 +118,28 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
 - `width=W height=H` — minimum size.
 - `at=x,y` — position, only honoured by `layout=fixed`.
 - `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.
+- `sub="second line"` — secondary text under the label, on nodes and groups. Styled with
+  the `sub` selector (default: grey, 0.85em, never bold); `node.x sub { ... }` targets one
+  class. `\n` makes several lines.
+
+### 4.1 Annotations
+
+- **Steps:** `a -> b step=3` draws a numbered circle on the edge, a third of the way
+  along it (or just left of the edge label when there is one). `graph steps=auto`
+  numbers every edge without its own `step=` in file order. Styled with `step`
+  (`fill` is the circle, `color` the number).
+- **Legend:** `legend "Key"` names the box; `legend .green "HAMi component"` adds an
+  entry whose swatch is styled like a node with those classes. Drawn under the diagram;
+  top level only, at most 64 entries. Styled with `legend`.
+- **Caption:** `graph caption="Figure 1: ..."` draws a line under the diagram (and the
+  legend). Styled with `caption` (default: grey, italic, centred).
+- **Accent bar:** CSS `accent-bar: 4px #16a34a` draws a strip inside the box edge and
+  widens the box by its width; `accent-side: left|right`. `accent-bar: none` removes it.
+- **Header band:** CSS `title-fill: #dbeafe` on a group fills a strip behind its title
+  and subtitle. Ignored with `label-position: bottom`.
+
+Not yet supported: side brackets over a range of nodes, vertical panel labels,
+highlight boxes that don't change the layout, and badges on node corners.
 
 ## 5. Layouts (balancing styles)
 
@@ -133,7 +156,9 @@ routed between real nodes.
   - `order=source|auto` — `source` keeps file order inside each rank (no
     crossing minimisation, the most stable); `auto` minimises crossings.
 - `layout=grid` — `cols=N` (or `rows=N`), `align=center|start|end`, `gap=24`.
-- `layout=row` / `layout=column` — single line, `align=`, `gap=`.
+- `layout=row` / `layout=column` — single line, `align=`, `gap=`. `align=stretch` makes
+  every child as wide (column) or tall (row) as the largest — equal-width tiers for
+  stack diagrams. A stretched group keeps its content left; `justify=center` centres it.
 - `layout=radial` — `center=ID` (default first child), `radius=auto|N`.
 - `layout=fixed` — children use `at=x,y` (top-left, relative to the container).
 

@@ -87,7 +87,8 @@ def size_node(n: Node, doc: Document) -> None:
 # ---------------------------------------------------------------- helpers
 def accent_width(st: dict, side: str) -> float:
     """Room an `accent-bar` takes on `side` (it sits inside the box, before the padding)."""
-    if not st.get("accent-bar") or st.get("accent-side", "left") != side:
+    spec = st.get("accent-bar")
+    if not spec or spec.strip() == "none" or st.get("accent-side", "left") != side:
         return 0.0
     return px(st["accent-bar"].split()[0], 4)
 
@@ -137,6 +138,14 @@ class LineLayout(Layout):
         cross = max((k.h if horizontal else k.w) for k in self.kids)
         pos = 0.0
         for k in self.kids:
+            if align == "stretch":  # every child as wide (column) / tall (row) as the widest
+                if horizontal:
+                    k.h = cross
+                else:
+                    grow = cross - k.w
+                    k.w = cross
+                    if isinstance(k, Group) and opt(k, "justify", "start") == "center":
+                        k.ox += grow / 2  # content stays left unless the tier asks to centre it
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
             if horizontal:
@@ -513,7 +522,7 @@ def layout_group(g: Group, doc: Document) -> None:
         sw, sh, _ = text_block(g.attrs.get("sub"), g.sub_style or g.style, 11)
         lw = max(lw, sw)
         g.label_h = g.title_h + (sh + SUB_GAP if sh else 0.0) + 6
-        if g.style.get("title-fill"):  # header band: title sits in a strip above the content
+        if g.style.get("title-fill") not in (None, "none") and g.style.get("label-position", "top") != "bottom":
             g.label_h += 6
     inner_w = max(cw, lw) + getattr(g, "extra_w", 0.0)  # extra_w: room requested for the title
     top = g.style.get("label-position", "top") != "bottom"

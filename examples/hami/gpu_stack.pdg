@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The GPU software stack, bottom to top, with HAMi's place in it (after the HAMi docs figure).
+# Shows: align=stretch for equal-width tiers, a highlighted node, legend.
+graph layout=column align=stretch gap=14 theme=hami caption="Where HAMi sits in the GPU stack"
+
+default group layout=row align=center gap=12 .tier
+
+group l5 "Layer 5: Kubernetes Scheduling" {
+  k8s_sched "Kubernetes Scheduler"
+  hami_sched "HAMi Scheduler" .hami
+  pod "Pod"
+}
+group l4 "Layer 4: Container Runtime" {
+  containerd "containerd"
+  nct "NVIDIA Container Toolkit"
+  container "Container"
+}
+group l3 "Layer 3: User-Space Libraries/Tools" {
+  cuda "CUDA Runtime / Toolkit"
+  nvml "NVML (libnvidia-ml.so)"
+  smi "nvidia-smi"
+  dcgm "DCGM"
+  mig "MIG"
+}
+group l2 "Layer 2: Kernel Driver" {
+  ko "nvidia.ko (Kernel Module)"
+  uvm "nvidia-uvm.ko"
+  modeset "nvidia-modeset.ko"
+}
+group l1 "Layer 1: Hardware" {
+  gpu "NVIDIA GPU"
+  pcie "PCIe Bus"
+  nvlink "NVLink (Optional)"
+}
+
+legend .hami "HAMi component"
+legend .plain "Kubernetes / NVIDIA"
+
+css {
+  group.tier { fill: #ffffff; stroke: var(--border); title-fill: none; font-size: 14px; }
+  node { font-weight: normal; font-size: 13px; padding: 8px 16px; }
+  node.hami { fill: var(--green); stroke: var(--green); color: #ffffff; font-weight: 600; }
+}
