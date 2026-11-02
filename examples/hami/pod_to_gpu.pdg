@@ -5,7 +5,7 @@
 # How HAMi gets a Pod onto a shared GPU (after the HAMi docs figure).
 # Shows: sub= second lines, numbered steps, header bands, accent bars, a dashed box,
 # and a notes panel.
-graph layout=row theme=hami caption="How a Pod with nvidia.com/gpumem gets a slice of a GPU"
+graph layout=row align=stretch theme=hami caption="How a Pod with nvidia.com/gpumem gets a slice of a GPU"
 
 group cp "Control plane" sub="decides where the Pod runs" layout=column {
   pod "Pod" sub="nvidia.com/gpumem: 3000"
