@@ -31,7 +31,9 @@ def main(
     at: float | None = typer.Option(None, "--at", help="SVG frozen at this time (seconds)"),
     fps: int = typer.Option(20, "--fps", help="APNG frames per second"),
     seconds: float | None = typer.Option(None, "--seconds", help="APNG length (default: one full loop)"),
-    scale: float = typer.Option(2.0, "--scale", help="APNG pixel scale"),
+    scale: float = typer.Option(2.0, "--scale", help="PNG pixel scale"),
+    width: int | None = typer.Option(None, "--width", help="PNG width in pixels (overrides --scale)"),
+    colors: int | None = typer.Option(None, "--colors", help="PNG palette size, 2-256 (smaller files)"),
     allow_outside: bool = typer.Option(False, "--allow-outside",
                                        help="Let image= and css \"...\" read files outside the input's directory"),
 ) -> None:
@@ -52,7 +54,7 @@ def main(
             typer.echo(f"{src}: ok")
             return
         if dest.suffix.lower() in (".png", ".apng"):
-            write_apng(scene, dest, fps, scale, seconds)
+            write_apng(scene, dest, fps, scale, seconds, width, static, colors)
         else:
             t = at if at is not None else (0.0 if static else None)
             dest.write_text(write_svg(scene, t), encoding="utf-8")

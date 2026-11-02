@@ -27,3 +27,12 @@ def test_same_side_edge_goes_around_boxes_between():
 def test_hami_theme_has_extra_css():
     css = theme_css("hami")
     assert "accent-bar" in css and "title-fill" in css
+
+
+def test_png_width_colors_and_single_frame(tmp_path):
+    from PIL import Image
+    from predictygraph.render.apng import write_apng
+    sc = build_scene(parse('a "x"\nb "y"\na -> b\n'))
+    out = write_apng(sc, tmp_path / "d.png", width=300, colors=16)
+    im = Image.open(out)
+    assert im.size[0] == 300 and getattr(im, "n_frames", 1) == 1 and im.mode == "P"

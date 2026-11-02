@@ -18,6 +18,7 @@ uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg
 uv run pdg diagram.pdg --css theme.css -o out.svg
 uv run pdg diagram.pdg -o out.png                    # animated PNG (APNG)
 uv run pdg diagram.pdg --check                       # validate only
+uv run pdg diagram.pdg -o d.png --width 1000 --colors 64   # small PNG for chat
 uv run pdg diagram.pdg --target web                  # size labels to fit any browser font
 ```
 
