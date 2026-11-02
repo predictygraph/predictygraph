@@ -16,6 +16,7 @@ class Item:
     attrs: dict[str, str] = field(default_factory=dict)
     parent: "Group | None" = None
     style: dict[str, str] = field(default_factory=dict)
+    sub_style: dict[str, str] = field(default_factory=dict)  # `sub=` text (CSS `sub` selector)
     # layout results (relative to parent content origin, then absolute)
     w: float = 0.0
     h: float = 0.0
@@ -48,6 +49,8 @@ class Node(Item):
     text_lines: list[str] = field(default_factory=list)
     text_w: float = 0.0
     text_h: float = 0.0
+    sub_lines: list[str] = field(default_factory=list)  # secondary text under the label
+    sub_h: float = 0.0
 
 
 @dataclass
@@ -59,6 +62,8 @@ class Group(Item):
     ox: float = 0.0
     oy: float = 0.0
     label_h: float = 0.0
+    title_h: float = 0.0  # label only; label_h also counts the subtitle
+    part_styles: dict[str, dict[str, str]] = field(default_factory=dict)  # root: caption, legend
 
 
 @dataclass
@@ -73,6 +78,7 @@ class Edge:
     scope: Group | None = None
     style: dict[str, str] = field(default_factory=dict)
     label_style: dict[str, str] = field(default_factory=dict)
+    step_style: dict[str, str] = field(default_factory=dict)
     index: int = 0
     waypoints: list[tuple[float, float]] = field(default_factory=list)
     wp_owner: Group | None = None
@@ -89,6 +95,8 @@ class Document:
     items: dict[str, Item] = field(default_factory=dict)
     base_dir: str = "."
     allow_outside: bool = False  # let image=/css "..." read files outside base_dir
+    legend: list[Node] = field(default_factory=list)  # `legend .cls "text"` entries (not laid out)
+    legend_title: str | None = None
 
     def walk(self, g: Group | None = None):
         g = g or self.root

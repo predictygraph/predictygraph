@@ -11,6 +11,8 @@ from pathlib import Path
 from .model import Document, Edge, Group, Node
 from .safe import MAX_EDGES, safe_path
 
+MAX_LEGEND = 64
+
 
 class PdgSyntaxError(ValueError):
     def __init__(self, msg: str, line: int):
@@ -188,6 +190,19 @@ class Parser:
             d.update(attrs)
             if classes:
                 d["__classes__"] = " ".join(classes)
+            return
+        if head == "legend" and (len(toks) == 1 or toks[1][0] in ("string", "cls")):
+            if self.scope is not self.root:
+                raise PdgSyntaxError("'legend' only allowed at top level", lineno)
+            label, classes, attrs = self._tail(toks, 1, lineno)
+            if not classes:  # `legend "Key"` names the box
+                self.doc.legend_title = label
+                return
+            if len(self.doc.legend) >= MAX_LEGEND:
+                raise PdgSyntaxError(f"too many legend entries (limit {MAX_LEGEND})", lineno)
+            entry = Node(id=f"pdg-legend-{len(self.doc.legend)}", label=label or " ".join(classes),
+                         classes=list(classes), attrs=attrs, parent=self.root)
+            self.doc.legend.append(entry)
             return
         if head == "group" and len(toks) >= 2 and toks[1][0] == "ident":
             if toks[-1] != ("punct", "{"):

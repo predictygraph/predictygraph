@@ -134,18 +134,46 @@ class StyleSheet:
 
 
 BOX_KEYS = ("fill", "stroke", "color", "font-size", "stroke-width", "border-radius", "font-weight",
-            "stroke-dasharray", "padding", "border", "border-speed")
+            "stroke-dasharray", "padding", "border", "border-speed", "accent-bar", "accent-side", "title-fill")
 EDGE_KEYS = ("arrow", "head", "head-start", "head-size", "route", "radius", "stub", "flow", "flow-speed",
              "diagonal", "diagonal-angle")
 INHERITED_EDGE_KEYS = tuple(k for k in EDGE_KEYS if k not in ("flow", "head-start"))
+TEXT_KEYS = ("font-family", "font-size", "color", "font-weight", "font-style", "text-align")
 
 
 @dataclass
-class _Label:
-    """Pseudo item so `label` / `edge.x label` selectors match an edge's label."""
+class _Part:
+    """Pseudo item so `label`, `sub`, `step`, `caption`, `legend` selectors match a piece
+    of text that belongs to an item (an edge label, a node subtitle, a step badge, ...)."""
+    kind: str
     classes: list
     id: str = ""
-    kind: str = "label"
+
+
+def part_style(sheet: "StyleSheet", kind: str, owner, anc: list, inherit: dict) -> dict[str, str]:
+    """Style for a text part: inherits text keys from its owner, then CSS for `kind`.
+    Subtitles drop the owner's weight: a bold title should not make the second line bold.
+    `em`/`%` font sizes are relative to the owner's size."""
+    base = {k: inherit[k] for k in TEXT_KEYS if k in inherit and not (kind == "sub" and k == "font-weight")}
+    st = sheet.resolve_vars({**base, **sheet.compute(_Part(kind, list(owner.classes)), [owner] + anc)})
+    fs = st.get("font-size", "").strip()
+    if fs.endswith("em"):
+        st["font-size"] = f"{px(inherit.get('font-size'), 14) * number(fs[:-2], 1, 0.1, 10):.2f}px"
+    elif fs.endswith("%"):
+        st["font-size"] = f"{px(inherit.get('font-size'), 14) * number(fs[:-1], 100, 10, 1000) / 100:.2f}px"
+    return st
+
+
+def number_steps(doc: Document) -> None:
+    """`graph steps=auto`: number every edge without its own `step=` in file order."""
+    if doc.root.attrs.get("steps") != "auto":
+        return
+    n = 0
+    for e in doc.edges:
+        if "step" in e.attrs:
+            continue
+        n += 1
+        e.attrs["step"] = str(n)
 
 
 def apply_styles(doc: Document, target: str | None = None) -> None:
@@ -154,15 +182,19 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
     for css, _ in doc.stylesheets:
         sheet.add(css)
     root = doc.root
+    number_steps(doc)
     root.style = sheet.resolve_vars(sheet.compute(root, []))
+    root.part_styles = {k: part_style(sheet, k, root, [], root.style) for k in ("caption", "legend")}
 
-    for item in doc.walk():
+    for item in [*doc.walk(), *doc.legend]:
         anc = item.ancestors()  # nearest first; root last
         parent = item.parent.style if item.parent else root.style
         st = {k: parent[k] for k in ("font-family",) if k in parent}
         st.update(sheet.compute(item, anc))
         st.update({k: v for k, v in item.attrs.items() if k in BOX_KEYS})
         item.style = sheet.resolve_vars(st)
+        if "sub" in item.attrs:
+            item.sub_style = part_style(sheet, "sub", item, anc, item.style)
     ge = root.attrs
     for e in doc.edges:
         anc = [a for a in (([e.scope] + e.scope.ancestors()) if e.scope is not root else [root]) if a is not None]
@@ -181,9 +213,9 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
             elif k in EDGE_KEYS or k in ("stroke", "color", "stroke-dasharray", "font-size"):
                 st[k] = v
         e.style = sheet.resolve_vars(st)
-        lab = sheet.compute(_Label(e.classes), [e] + anc)
-        e.label_style = sheet.resolve_vars({**{k: e.style[k] for k in ("font-family", "font-size", "color")
-                                               if k in e.style}, **lab})
+        e.label_style = part_style(sheet, "label", e, anc, e.style)
+        if "step" in e.attrs:
+            e.step_style = part_style(sheet, "step", e, anc, e.style)
 
 
 def px(v: str | None, default: float = 0.0) -> float:

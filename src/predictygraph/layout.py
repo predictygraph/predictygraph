@@ -14,13 +14,27 @@ from .text import load_image, measure
 
 
 # ---------------------------------------------------------------- sizing
+BOLD = ("bold", "bolder", "600", "700", "800", "900")
+SUB_GAP = 3.0  # px between a label and its `sub=` lines
+
+
+def text_block(text: str | None, st: dict, default_fs: float) -> tuple[float, float, list[str]]:
+    if not text:
+        return 0.0, 0.0, []
+    fs = px(st.get("font-size"), default_fs)
+    return measure(text, st.get("font-family", "sans-serif"), fs, st.get("font-weight", "normal") in BOLD)
+
+
 def size_node(n: Node, doc: Document) -> None:
     st = n.style
-    fs = px(st.get("font-size"), 14)
-    bold = st.get("font-weight", "normal") in ("bold", "600", "700", "800", "900")
     label = n.label if n.label is not None else n.id
-    n.text_w, n.text_h, n.text_lines = measure(label, st.get("font-family", "sans-serif"), fs, bold) if label else (0.0, 0.0, [])
+    n.text_w, n.text_h, n.text_lines = text_block(label, st, 14)
+    sw, sh, n.sub_lines = text_block(n.attrs.get("sub"), n.sub_style or st, 12)
+    n.sub_h = sh + SUB_GAP if n.sub_lines else 0.0
+    n.text_w, n.text_h = max(n.text_w, sw), n.text_h + n.sub_h  # text_h covers label + sub
     pt, pr, pb, pl = box4(st.get("padding"), 8)
+    pl += accent_width(st, "left")
+    pr += accent_width(st, "right")
     shape = n.attrs.get("shape")
     if "image" in n.attrs:
         img = load_image(n.attrs["image"], doc.base_dir, doc.allow_outside)
@@ -71,6 +85,13 @@ def size_node(n: Node, doc: Document) -> None:
 
 
 # ---------------------------------------------------------------- helpers
+def accent_width(st: dict, side: str) -> float:
+    """Room an `accent-bar` takes on `side` (it sits inside the box, before the padding)."""
+    if not st.get("accent-bar") or st.get("accent-side", "left") != side:
+        return 0.0
+    return px(st["accent-bar"].split()[0], 4)
+
+
 def direct_child(item: Item, g: Group) -> Item | None:
     """Ancestor-or-self of `item` that is a direct child of g."""
     cur = item
@@ -485,13 +506,15 @@ def layout_group(g: Group, doc: Document) -> None:
     else:
         lay = LAYOUTS[g.attrs["layout"]](g, doc)
         cw, ch = lay.run()
-    g.label_h = 0.0
+    g.label_h = g.title_h = 0.0
     lw = 0.0
     if g.label and g.kind == "group":
-        fs = px(g.style.get("font-size"), 12)
-        lw, g.label_h, _ = measure(g.label, g.style.get("font-family", "sans-serif"), fs,
-                                   g.style.get("font-weight", "normal") in ("bold", "700"))
-        g.label_h += 6
+        lw, g.title_h, _ = text_block(g.label, g.style, 12)
+        sw, sh, _ = text_block(g.attrs.get("sub"), g.sub_style or g.style, 11)
+        lw = max(lw, sw)
+        g.label_h = g.title_h + (sh + SUB_GAP if sh else 0.0) + 6
+        if g.style.get("title-fill"):  # header band: title sits in a strip above the content
+            g.label_h += 6
     inner_w = max(cw, lw) + getattr(g, "extra_w", 0.0)  # extra_w: room requested for the title
     top = g.style.get("label-position", "top") != "bottom"
     g.ox = pl + (inner_w - cw) / 2

@@ -16,6 +16,7 @@ import math
 
 from .anim import BORDER_MODES, Track, border_tracks, dash_len, flow_tracks, seconds
 from .ir import Elem, Scene
+from .layout import SUB_GAP, accent_width
 from .model import Document, Edge, Group, Node
 from .route import Diagonal, Router, flow_dir, lca
 from .style import box4, px
@@ -45,7 +46,53 @@ class SceneBuilder:
         layers = [groups_layer, edges_layer, nodes_layer]
         if self.title_layer.children:
             layers.append(self.title_layer)
-        return Scene(root.w, root.h, root.style.get("background"), layers)
+        w, h = root.w, root.h
+        legend, lw, lh = self.legend(h)
+        if legend:
+            layers.append(legend)
+            w, h = max(w, lw), h + lh
+        cap = root.attrs.get("caption")
+        if cap:
+            st = root.part_styles.get("caption") or root.style
+            fs = px(st.get("font-size"), 12)
+            cw, ch, lines = measure(cap, st.get("font-family", "sans-serif"), fs)
+            w = max(w, cw + 28)
+            align = st.get("text-align", "center")
+            x, anchor = {"left": (14, "start"), "right": (w - 14, "end")}.get(align, (w / 2, "middle"))
+            layers.append(Elem("group", cls="pdg-caption", children=self.text(lines, x, h, fs, st, anchor)))
+            h += ch + 14
+        return Scene(w, h, root.style.get("background"), layers)
+
+    def legend(self, top: float) -> tuple[Elem | None, float, float]:
+        """`legend .cls "text"` entries: a key box under the diagram, swatches styled like nodes."""
+        entries = self.doc.legend
+        if not entries:
+            return None, 0.0, 0.0
+        st = self.doc.root.part_styles.get("legend") or {}
+        fs = px(st.get("font-size"), 11)
+        fam = st.get("font-family", self.doc.root.style.get("font-family", "sans-serif"))
+        sw, gap, pad = 14.0, 16.0, 10.0
+        title = self.doc.legend_title
+        tw, th, _ = measure(title, fam, fs, True) if title else (0.0, 0.0, [])
+        x = pad + (tw + gap if title else 0.0)
+        kids, row_h = [], max(sw, fs * 1.25)
+        y0 = top + pad
+        if title:
+            kids += self.text([title], 14 + pad, y0 + (row_h - fs * 1.25) / 2, fs, {**st, "font-weight": "bold"}, "start")
+        for n in entries:
+            ew, _, _ = measure(n.label, fam, fs)
+            ns = n.style
+            r = min(px(ns.get("border-radius"), 3), 4)
+            kids.append(Elem("rect", cls=" ".join(["pdg-legend-swatch"] + n.classes),
+                             geom={"x": 14 + x, "y": y0 + (row_h - sw) / 2, "w": sw, "h": sw, "rx": r},
+                             paint={"fill": ns.get("fill", "#ffffff"), "stroke": ns.get("stroke", "#9ca3af"),
+                                    "stroke-width": 1.2}))
+            kids += self.text([n.label], 14 + x + sw + 6, y0 + (row_h - fs * 1.25) / 2, fs, st, "start")
+            x += sw + 6 + ew + gap
+        bw, bh = x - gap + pad, row_h + 2 * pad
+        box = Elem("rect", cls="pdg-legend-box", geom={"x": 14, "y": top, "w": bw, "h": bh, "rx": 6},
+                   paint={"fill": st.get("fill", "#ffffff"), "stroke": st.get("stroke", "#d1d5db"), "stroke-width": 1})
+        return Elem("group", cls="pdg-legend", children=[box] + kids), bw + 28, bh + 14
 
     # ------------------------------------------------------------ text
     @staticmethod
@@ -113,6 +160,7 @@ class SceneBuilder:
         st = n.style
         shape = n.attrs.get("shape", "box")
         out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.shape(n, shape, st))
+        out.children += self.accent(n, st)
         fs = px(st.get("font-size"), 14)
         if n.image:
             img = n.image
@@ -130,17 +178,45 @@ class SceneBuilder:
     def _node_text(self, n, st, fs):
         align = st.get("text-align", "center")
         pt, pr, pb, pl = box4(st.get("padding"), 8)
+        pl += accent_width(st, "left")
+        pr += accent_width(st, "right")
         top = n.cy - n.text_h / 2
-        if align == "left":
-            return self.text(n.text_lines, n.ax + pl, top, fs, st, "start")
-        if align == "right":
-            return self.text(n.text_lines, n.ax + n.w - pr, top, fs, st, "end")
-        return self.text(n.text_lines, n.cx, top, fs, st)
+        x, anchor = {"left": (n.ax + pl, "start"), "right": (n.ax + n.w - pr, "end")}.get(align, (n.cx, "middle"))
+        out = self.text(n.text_lines, x, top, fs, st, anchor)
+        if n.sub_lines:
+            sst = n.sub_style or st
+            sfs = px(sst.get("font-size"), 12)
+            stop = top + n.text_h - n.sub_h + SUB_GAP
+            out += self.text(n.sub_lines, x, stop, sfs, sst, anchor)
+        return out
+
+    def accent(self, it, st) -> list[Elem]:
+        """`accent-bar: 4px #22c55e` draws a strip inside the box edge (`accent-side`)."""
+        spec = st.get("accent-bar")
+        if not spec:
+            return []
+        parts = spec.split()
+        bw = px(parts[0], 4)
+        color = parts[1] if len(parts) > 1 else st.get("stroke", "#22c55e")
+        side = st.get("accent-side", "left")
+        x = it.ax if side == "left" else it.ax + it.w - bw
+        r = min(px(st.get("border-radius"), 6), bw)
+        return [Elem("rect", cls="pdg-accent", geom={"x": x, "y": it.ay, "w": bw, "h": it.h, "rx": r},
+                     paint={"fill": color})]
 
     def group(self, g: Group) -> Elem:
         st = g.style
         out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
                    children=self.shape(g, g.attrs.get("shape", "box"), st))
+        out.children += self.accent(g, st)
+        if g.label and st.get("title-fill"):
+            pt = box4(st.get("padding"), 14)[0]
+            bh = pt + g.label_h - 3
+            r = px(st.get("border-radius"), 8)
+            out.children.append(Elem("path", cls="pdg-title-band", paint={"fill": st["title-fill"]}, geom={"segs": [
+                ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
+                ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
+                ("L", g.ax + g.w, g.ay + bh), ("Z",)]}))
         if g.label:
             fs = px(st.get("font-size"), 12)
             pt, pr, pb, pl = box4(st.get("padding"), 14)
@@ -152,6 +228,10 @@ class SceneBuilder:
             x0 = self._title_x(g, st, tw, pl, pr, top, th)
             box = (x0 - TITLE_PAD, top - 2, x0 + tw + TITLE_PAD, top + th + 2)
             texts = self.text(lines, x0, top, fs, st, "start")
+            if g.attrs.get("sub") and not bottom:
+                sst = g.sub_style or st
+                texts += self.text(g.attrs["sub"].split("\n"), x0, top + g.title_h + SUB_GAP,
+                                   px(sst.get("font-size"), 11), sst, "start")
             xs = self._crossings(box[1], box[3], box[0], box[2])
             if xs:
                 # ask the pipeline for a wider group: children are centred, so widening
@@ -289,7 +369,30 @@ class SceneBuilder:
                                           self.doc.root.style.get("background", "#ffffff")))
         if e.label:
             out.children += self.edge_label(e, self.edge_polys[e.id])
+        if e.attrs.get("step"):
+            out.children += self.step_badge(e, self.edge_polys[e.id])
         return out
+
+    def step_badge(self, e, poly) -> list[Elem]:
+        """Numbered circle on the edge, a third of the way along its path (labels sit mid-way)."""
+        st = e.step_style or e.style
+        fs = px(st.get("font-size"), 11)
+        txt = e.attrs["step"][:3]
+        w, h, _ = measure(txt, st.get("font-family", "sans-serif"), fs, True)
+        r = max(w, h) / 2 + 3
+        lens = [math.dist(a, b) for a, b in zip(poly, poly[1:])]
+        goal, acc = sum(lens) / 3, 0.0
+        cx, cy = poly[0]
+        for (a, b), l in zip(zip(poly, poly[1:]), lens):
+            if acc + l >= goal and l:
+                t = (goal - acc) / l
+                cx, cy = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+                break
+            acc += l
+        circ = Elem("circle", cls="pdg-step", geom={"cx": cx, "cy": cy, "r": r},
+                    paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"),
+                           "stroke-width": 1.5})
+        return [circ] + self.text([txt], cx, cy - fs * 1.25 / 2, fs, {**st, "font-weight": st.get("font-weight", "bold")})
 
     @staticmethod
     def head(kind, tip, d, hl, color, width, bg="#ffffff") -> Elem:
