@@ -7,7 +7,7 @@
 # and a notes panel.
 graph layout=row align=stretch theme=hami caption="How a Pod with nvidia.com/gpumem gets a slice of a GPU"
 
-group cp "Control plane" sub="decides where the Pod runs" layout=column {
+group cp "Control plane" sub="decides where the Pod runs" layout=column gap=40 {
   pod "Pod" sub="nvidia.com/gpumem: 3000"
   webhook "MutatingWebhook" sub="sets schedulerName: hami-scheduler" .blue
   sched "HAMi scheduler" sub="extender next to kube-scheduler\npicks a node and a card" .blue
