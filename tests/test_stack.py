@@ -30,6 +30,9 @@ def test_hami_theme_has_extra_css():
 
 
 def test_png_width_colors_and_single_frame(tmp_path):
+    import pytest
+    pytest.importorskip("cairosvg")  # optional extra: predictygraph[apng]
+    pytest.importorskip("PIL")
     from PIL import Image
     from predictygraph.render.apng import write_apng
     sc = build_scene(parse('a "x"\nb "y"\na -> b\n'))
