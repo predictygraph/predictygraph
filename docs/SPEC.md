@@ -51,6 +51,44 @@ Nodes referenced in an edge but never declared are created implicitly in the
 first declared or referenced — so declare nodes inside their group first and connect
 them from anywhere.
 
+### 2.1 Variables and reusable blocks
+
+```
+let NAME = VALUE                   # value variable, VALUE = identifier, number, string or x,y
+def NAME [PARAM[=DEFAULT]...] {    # reusable block
+  ...statements...
+}
+use NAME ID ["Label"] [.class...] [PARAM=VALUE...] [attrs]   # place a copy of the block
+```
+
+- `$NAME` is replaced by the variable's value anywhere a value can stand: labels,
+  attribute values, class names. Inside strings write `"${NAME}"`. An unknown `$NAME`
+  is an error. Variables follow scope: one set in a group is visible only in that group.
+- `def` statements produce nothing. `use` places one copy of the block as a `group`
+  with the given `ID`, label, classes and attrs, so it gets its own layout like any group.
+- Inside a block, `$ID` and `$LABEL` refer to the `use` line's ID and label, and each
+  parameter is a variable. Parameters without a default must be given on `use`.
+- **IDs inside a block are local.** A copy's node `cpu` becomes `ID-cpu`, so two copies
+  never clash. Connect to it from outside with that full name (`node1-cpu -> switch`).
+- `def` may appear anywhere before its first `use`; a block may `use` other blocks but
+  not itself.
+
+```
+let accent = "#3939D8"
+
+def server gpus=2 {
+  cpu "CPU"
+  gpu "GPU x${gpus}" fill=$accent
+  cpu -> gpu
+}
+
+group rack layout=row {
+  use server node1 "Node 1"
+  use server node2 "Node 2" gpus=8
+}
+scheduler -> node1-cpu, node2-cpu
+```
+
 ## 3. Edges
 
 Arrow token = optional `<`, a body of `-`, `=` or `.` characters, optional `>`
