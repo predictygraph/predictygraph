@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 # HAMi scheduling flow: three balancing styles in one file
 graph dir=LR balance=median route=ortho radius=8 edge-width=1.5 rank-gap=70

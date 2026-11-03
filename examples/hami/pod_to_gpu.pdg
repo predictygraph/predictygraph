@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 # How HAMi gets a Pod onto a shared GPU (after the HAMi docs figure).
 # Shows: sub= second lines, numbered steps, header bands, accent bars, a dashed box,

@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 """Small style readers shared by layout (sizing) and scene (drawing), so both sides
 agree on what a style means: text metrics, accent bars, header bands, title position."""

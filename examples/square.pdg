@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 # Edges can end on a group box itself, or on square nodes
 graph dir=LR route=ortho radius=8

@@ -1,7 +1,7 @@
 <!--
-SPDX-FileCopyrightText: 2026 The predictygraph Authors
+SPDX-FileCopyrightText: 2026 Reza Jelveh
 
-SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-License-Identifier: Apache-2.0
 -->
 
 # predictygraph
@@ -69,3 +69,7 @@ and hosts.
 predictygraph keeps what we love from both (diagrams as readable text) and adds what we
 missed: per-group layouts, plain-CSS styling, and deterministic static SVG with no
 browser in the loop.
+
+## License
+
+Apache-2.0, see [LICENSE](LICENSE). Forks must keep [NOTICE](NOTICE). Bundled fonts keep their own licences in [fonts/licenses](src/predictygraph/fonts/licenses).

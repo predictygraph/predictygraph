@@ -2,7 +2,7 @@
 name: predictygraph
 description: Draw architecture diagrams, flowcharts and system maps as predictygraph (.pdg) files and render them to SVG or PNG. Use when someone asks for a diagram, a box-and-arrow picture of a system, a flowchart, or a figure for slides or docs, or when they share a .pdg file.
 version: 0.2.3
-license: GPL-3.0-or-later
+license: Apache-2.0
 metadata:
   hermes:
     tags: [diagrams, graphs, svg, architecture, flowchart, slides]

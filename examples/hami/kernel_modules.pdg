@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 # NVIDIA kernel module hierarchy and the path from user space to the GPU
 # (after the HAMi docs figure). Shows: sub= lines, a dashed box inside a panel,

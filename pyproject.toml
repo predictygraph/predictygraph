@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 [project]
 name = "predictygraph"
@@ -10,7 +10,7 @@ authors = [{name = "Reza Jelveh", email = "git@jelveh.me"}]
 dependencies = ["tinycss2>=1.5.1", "typer>=0.26.8", "pillow>=11.0.0"]
 requires-python = ">=3.11"
 readme = "README.md"
-license = {text = "GPL-3.0-or-later"}
+license = {text = "Apache-2.0"}
 
 [project.optional-dependencies]
 apng = ["cairosvg>=2.7"]

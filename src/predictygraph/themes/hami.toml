@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 # The look of the HAMi documentation diagrams: soft blue panels with a header band,
 # white rounded boxes with a bold title and a grey second line (`sub=`), HAMi green
