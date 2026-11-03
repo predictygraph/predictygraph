@@ -555,6 +555,37 @@ def absolutize(g: Group, ox: float, oy: float) -> None:
             absolutize(c, c.ax, c.ay)
 
 
+def shift(item: Item, dx: float) -> None:
+    """Move an item sideways by dx after absolutize: its own x (relative to its parent)
+    and the absolute position of it and everything inside it."""
+    item.x += dx
+
+    def move(i: Item) -> None:
+        i.ax += dx
+        if isinstance(i, Group):
+            for c in i.children:
+                move(c)
+    move(item)
+
+
+def align_x(doc: Document) -> None:
+    """`align-x=ID`: centre an item horizontally on another item, e.g. line up a box with
+    the one it calls in the panel below. It only moves within its parent's content box and
+    never past a sibling, so nothing overlaps and no group is resized."""
+    for item in list(doc.walk()):
+        ref = doc.items.get(item.attrs.get("align-x", ""))
+        p = item.parent
+        if ref is None or ref is item or p is None:
+            continue
+        pr = box4(p.style.get("padding"), 14)[1]
+        sibs = [s for s in p.children if s is not item]
+        lo = max([s.ax + s.w + 8 for s in sibs if s.ax + s.w <= item.ax + 1e-6], default=p.ax + p.ox)
+        hi = min([s.ax - 8 for s in sibs if s.ax >= item.ax + item.w - 1e-6], default=p.ax + p.w - pr)
+        new = min(max(ref.cx - item.w / 2, lo), hi - item.w)
+        if abs(new - item.ax) > 0.01:
+            shift(item, new - item.ax)
+
+
 def layout(doc: Document) -> None:
     root = doc.root
     for e in doc.edges:  # layout may run again after the router widens gaps
@@ -562,6 +593,7 @@ def layout(doc: Document) -> None:
             e.waypoints, e.wp_owner = [], None
     layout_group(root, doc)
     absolutize(root, 0, 0)
+    align_x(doc)
     # translate virtual waypoints into absolute coords and attach to edges
     for g in [root] + [i for i in doc.walk() if isinstance(i, Group)]:
         lay = getattr(g, "layout_obj", None)

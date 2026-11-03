@@ -8,11 +8,11 @@
 graph layout=column align=stretch gap=10 theme=hami caption="NVIDIA driver modules and the path from user space to the GPU"
 
 group user "User space" layout=row gap=60 .space {
-  group smi_col layout=column gap=18 .bare {
+  group smi_col layout=column gap=18 align-x=nvidia .bare {
     smi "nvidia-smi" .plain
     nvml "libnvidia-ml.so" sub="NVML" .blue
   }
-  group cuda_col layout=column gap=18 .bare {
+  group cuda_col layout=column gap=18 align-x=uvm .bare {
     app "CUDA application" .plain
     libcuda "libcuda.so" sub="CUDA driver API" .blue
   }

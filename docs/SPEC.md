@@ -118,6 +118,9 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
 - `width=W height=H` — minimum size.
 - `at=x,y` — position, only honoured by `layout=fixed`.
 - `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.
+- `align-x=ID` — after layout, centre this node or group horizontally on another item,
+  even one in a different panel (line a box up with the one it calls below). It only
+  moves inside its parent's content box and never past a sibling, so nothing overlaps.
 - `sub="second line"` — secondary text under the label, on nodes and groups. Styled with
   the `sub` selector (default: grey, 0.85em, never bold); `node.x sub { ... }` targets one
   class. `\n` makes several lines.

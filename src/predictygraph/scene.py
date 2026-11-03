@@ -38,6 +38,43 @@ def point_along(poly: list[tuple[float, float]], frac: float) -> tuple[float, fl
     return poly[-1]
 
 
+def corner_radius(st: dict, shape: str, w: float, h: float) -> float:
+    """The corner radius a box shape is drawn with (shared by the box and its accent bar)."""
+    if shape == "pill":
+        return h / 2
+    r = px(st.get("border-radius"), 0)
+    return max(r, 10) if shape == "round" else r
+
+
+def accent_segs(x: float, y: float, w: float, h: float, bw: float, r: float, side: str) -> list:
+    """Path for a `bw`-wide strip down one side of an (x, y, w, h) box with corner radius r.
+    The outer edge follows the box's corner arcs and the inner edge is straight, so the
+    strip stays inside the rounded outline. Drawn for the left side, mirrored for right."""
+    bw, r = min(bw, w / 2), min(r, h / 2)
+    if r <= 0:
+        pts = [(0, 0), (bw, 0), (bw, h), (0, h)]
+        segs = [("M", *pts[0])] + [("L", *p) for p in pts[1:]]
+    elif bw < r:  # inner edge cuts the corner arc at height dy below the top
+        dy = r - math.sqrt(r * r - (r - bw) ** 2)
+        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, bw, dy), ("L", bw, h - dy),
+                ("A", r, r, 0, 0, 1, 0, h - r)]
+    else:  # strip wider than the radius: full corner arc, then straight along top/bottom
+        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, r, 0), ("L", bw, 0), ("L", bw, h), ("L", r, h),
+                ("A", r, r, 0, 0, 1, 0, h - r)]
+    segs.append(("Z",))
+    flip = side != "left"
+
+    def place(s):
+        if s[0] == "A":  # (A, rx, ry, rot, large, sweep, px, py): mirroring flips the sweep
+            _, rx, ry, rot, large, sweep, px_, py_ = s
+            return ("A", rx, ry, rot, large, 1 - sweep if flip else sweep,
+                    x + (w - px_ if flip else px_), y + py_)
+        if s[0] == "Z":
+            return s
+        return (s[0], x + (w - s[1] if flip else s[1]), y + s[2])
+    return [place(s) for s in segs]
+
+
 class SceneBuilder:
     def __init__(self, doc: Document, router: Router):
         self.doc, self.router = doc, router
@@ -177,11 +214,7 @@ class SceneBuilder:
             paint["opacity"] = st["opacity"]
         if st.get("shadow") == "soft":
             paint["filter"] = "shadow"
-        r = px(st.get("border-radius"), 0)
-        if shape == "round":
-            r = max(r, 10)
-        if shape == "pill":
-            r = h / 2
+        r = corner_radius(st, shape, w, h)
         if shape in ("box", "round", "pill", "note", "square"):
             el = Elem("rect", geom={"x": x, "y": y, "w": w, "h": h, "rx": r}, paint=paint)
         elif shape in ("circle", "ellipse"):
@@ -249,14 +282,14 @@ class SceneBuilder:
         return out
 
     def accent(self, it, st) -> list[Elem]:
-        """`accent-bar: 4px #22c55e` draws a strip inside the box edge (`accent-side`)."""
+        """`accent-bar: 4px #22c55e`: a strip along one side (`accent-side`), clipped to the
+        box's own rounded corners so it never pokes outside them."""
         a = accent(st)
         if not a:
             return []
         bw, color, side = a
-        x = it.ax if side == "left" else it.ax + it.w - bw
-        r = min(px(st.get("border-radius"), 6), bw)
-        return [Elem("rect", cls="pdg-accent", geom={"x": x, "y": it.ay, "w": bw, "h": it.h, "rx": r},
+        r = min(corner_radius(st, it.attrs.get("shape", "box"), it.w, it.h), it.h / 2)
+        return [Elem("path", cls="pdg-accent", geom={"segs": accent_segs(it.ax, it.ay, it.w, it.h, bw, r, side)},
                      paint={"fill": color or st.get("stroke", "#22c55e")})]
 
     def group(self, g: Group) -> Elem:
@@ -278,7 +311,7 @@ class SceneBuilder:
     def _title_band(self, g: Group, st: dict) -> Elem:
         """`title-fill`: a band behind the title, rounded like the group's top corners."""
         bh = box4(st.get("padding"), 14)[0] + g.label_h - 3
-        r = px(st.get("border-radius"), 8)
+        r = min(corner_radius(st, g.attrs.get("shape", "box"), g.w, g.h), bh)
         return Elem("path", cls="pdg-title-band", paint={"fill": st["title-fill"]}, geom={"segs": [
             ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
             ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
