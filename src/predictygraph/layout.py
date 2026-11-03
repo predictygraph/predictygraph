@@ -160,6 +160,9 @@ class LineLayout(Layout):
             if j != i + 1:
                 continue
             w, _, _ = text_block(e.label, e.label_style or e.style, 11, bold=False)
+            if e.attrs.get("step"):  # the step badge sits just left of the label
+                bw, bh, _ = text_block(e.attrs["step"][:3], e.step_style or e.style, 11, bold=True)
+                w += max(bw, bh) + 12
             need[i] = max(need.get(i, 0.0), w + 34)
         return need
 
@@ -570,20 +573,26 @@ def shift(item: Item, dx: float) -> None:
 
 def align_x(doc: Document) -> None:
     """`align-x=ID`: centre an item horizontally on another item, e.g. line up a box with
-    the one it calls in the panel below. It only moves within its parent's content box and
-    never past a sibling, so nothing overlaps and no group is resized."""
+    the one it calls in the panel below. Siblings on the side it moves towards travel with
+    it, so every gap (and the edge labels in it) keeps its width; the whole block stays
+    inside the parent's content box, so no group is resized and nothing overlaps."""
     for item in list(doc.walk()):
         ref = doc.items.get(item.attrs.get("align-x", ""))
         p = item.parent
         if ref is None or ref is item or p is None:
             continue
         pr = box4(p.style.get("padding"), 14)[1]
-        sibs = [s for s in p.children if s is not item]
-        lo = max([s.ax + s.w + 8 for s in sibs if s.ax + s.w <= item.ax + 1e-6], default=p.ax + p.ox)
-        hi = min([s.ax - 8 for s in sibs if s.ax >= item.ax + item.w - 1e-6], default=p.ax + p.w - pr)
-        new = min(max(ref.cx - item.w / 2, lo), hi - item.w)
-        if abs(new - item.ax) > 0.01:
-            shift(item, new - item.ax)
+        lo_edge, hi_edge = p.ax + p.ox, p.ax + p.w - pr
+        dx = ref.cx - item.cx
+        if dx > 0:  # item and everything right of it move right, up to the right edge
+            block = [s for s in p.children if s is item or s.ax >= item.ax + item.w - 1e-6]
+            dx = min(dx, hi_edge - max(s.ax + s.w for s in block))
+        else:       # item and everything left of it move left, down to the left edge
+            block = [s for s in p.children if s is item or s.ax + s.w <= item.ax + 1e-6]
+            dx = max(dx, lo_edge - min(s.ax for s in block))
+        if abs(dx) > 0.01:
+            for s in block:
+                shift(s, dx)
 
 
 def layout(doc: Document) -> None:

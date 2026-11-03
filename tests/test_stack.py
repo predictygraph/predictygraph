@@ -82,3 +82,17 @@ def test_accent_bar_stays_inside_rounded_corners():
     assert min(ys) > 0 and max(ys) < 40  # starts below the top edge: it follows the arc
     right = accent_segs(0, 0, 100, 40, 4, 10, "right")
     assert min(s[-2] for s in right if s[0] != "Z") >= 96
+
+
+def test_align_x_keeps_gaps_by_moving_neighbours():
+    src = ('graph layout=column align=stretch\n'
+           'group top layout=row gap=300 {\n p "p"\n q "q"\n}\n'
+           'group bottom layout=row gap=30 {\n a "aaaa" align-x=q\n b "bbbb"\n}\n'
+           'a -> b "a fairly long label"\n')
+    plain = parse(src.replace(" align-x=q", ""))
+    build_scene(plain)
+    doc = parse(src)
+    build_scene(doc)
+    gap = lambda d: d.items["b"].ax - (d.items["a"].ax + d.items["a"].w)
+    assert abs(gap(doc) - gap(plain)) < 0.01  # b moved with a: the label still fits
+    assert doc.items["a"].ax > plain.items["a"].ax

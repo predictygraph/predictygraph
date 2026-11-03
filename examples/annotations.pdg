@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Annotations tour: every feature added since 0.2, in one small request-flow diagram.
+#
+#   sub="..."                second line under a label (nodes and groups)
+#   steps=auto / step=N      numbered circles on edges
+#   legend / caption         a key and a figure caption under the diagram
+#   accent-bar, title-fill   CSS: a coloured side strip, a band behind a panel title
+#   label-position: left     CSS: a panel title turned sideways
+#   align=stretch            equal-height panels (in a row) or equal-width tiers (in a column)
+#   align-x=ID               line a box up with one in another panel
+#   bracket a, b "note"      a curly bracket with a note beside a range of boxes
+#
+# Render:  pdg examples/annotations.pdg -o annotations.svg
+graph layout=column align=stretch gap=12 theme=hami steps=auto caption="A request, from the browser to the database"
+
+# Panels in a column with align=stretch are all as wide as the widest one.
+group edge "Edge" layout=row gap=40 .tier {
+  browser "Browser" sub="sends GET /orders"
+  cdn "CDN" sub="caches static files" .blue
+}
+
+group app "Application" layout=row gap=40 .tier {
+  api "API gateway" sub="checks the token" .green
+  orders "Orders service" sub="builds the response" .green
+}
+
+group data "Data" layout=row .tier {
+  # align-x puts the database right under the Orders service, so the arrow is straight.
+  # (It moves a box only within its own panel's free space.)
+  db "PostgreSQL" sub="all orders" shape=cylinder align-x=orders
+}
+
+# steps=auto numbers these in file order: 1, 2, 3 ...
+browser -> cdn
+cdn -> api "cache miss"
+api -> orders
+orders -> db "query"
+
+# A bracket spans from the top of the first box to the bottom of the last one.
+bracket api, db "runs in our\ncluster"
+
+legend "Key"
+legend .green "our services"
+legend .blue "third party"
+
+css {
+  group.tier { label-position: left; title-fill: none; }
+  #edge { fill: #eff6ff; color: var(--blue); stroke: none; }
+  #app  { fill: #f0fdf4; color: var(--green); stroke: none; }
+  #data { fill: #f8fafc; color: var(--muted); stroke: none; }
+}
