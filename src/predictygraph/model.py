@@ -98,8 +98,6 @@ class Bracket:
     style: dict[str, str] = field(default_factory=dict)
     kind: str = "bracket"
     id: str = ""
-    _col: int = 0  # set by the scene builder: which column of brackets
-    _geom: tuple = ()
 
 
 @dataclass

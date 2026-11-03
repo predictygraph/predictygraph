@@ -16,14 +16,26 @@ import math
 
 from .anim import BORDER_MODES, Track, border_tracks, dash_len, flow_tracks, seconds
 from .ir import Elem, Scene
-from .layout import SUB_GAP, accent_width
+from .layout import SUB_GAP
 from .model import Document, Edge, Group, Node
 from .route import Diagonal, Router, flow_dir, lca
 from .style import box4, px
-from .text import measure
+from .styleutil import LINE_H, accent, font_size, has_title_band, node_padding, text_block, title_position
 
 TITLE_PAD = 6.0
 ER_HEADS = ("one", "many", "zero-one", "zero-many", "one-many")
+
+
+def point_along(poly: list[tuple[float, float]], frac: float) -> tuple[float, float]:
+    """The point `frac` (0..1) of the way along a polyline, by length."""
+    lens = [math.dist(a, b) for a, b in zip(poly, poly[1:])]
+    goal, acc = sum(lens) * frac, 0.0
+    for (a, b), seg in zip(zip(poly, poly[1:]), lens):
+        if seg and acc + seg >= goal:
+            t = (goal - acc) / seg
+            return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+        acc += seg
+    return poly[-1]
 
 
 class SceneBuilder:
@@ -58,8 +70,8 @@ class SceneBuilder:
         cap = root.attrs.get("caption")
         if cap:
             st = root.part_styles.get("caption") or root.style
-            fs = px(st.get("font-size"), 12)
-            cw, ch, lines = measure(cap, st.get("font-family", "sans-serif"), fs)
+            fs = font_size(st, 12)
+            cw, ch, lines = text_block(cap, st, 12)
             w = max(w, cw + 28)
             align = st.get("text-align", "center")
             x, anchor = {"left": (14, "start"), "right": (w - 14, "end")}.get(align, (w / 2, "middle"))
@@ -73,19 +85,16 @@ class SceneBuilder:
         stacked outward. Returns the layer and the extra canvas width."""
         out = Elem("group", cls="pdg-brackets")
         depth = 8.0
-        spans = []
+        spans = []  # (height, y0, y1, bracket, text width, text height, lines)
         for b in self.doc.brackets:
             items = [self.doc.items[i] for i in b.ids]
             y0, y1 = min(i.ay for i in items), max(i.ay + i.h for i in items)
-            st = b.style
-            fs = px(st.get("font-size"), 11)
-            tw, th, lines = measure(b.label, st.get("font-family", "sans-serif"), fs) if b.label \
-                else (0.0, 0.0, [])
-            spans.append((y1 - y0, y0, y1, b, st, fs, tw, th, lines))
+            spans.append((y1 - y0, y0, y1, b, *text_block(b.label, b.style, 11)))
         spans.sort(key=lambda s: s[0])  # short spans nearest the diagram, long ones outside
         cols: list[list[tuple[float, float]]] = []
         col_w: list[float] = []
-        for _, y0, y1, b, st, fs, tw, th, lines in spans:
+        placed = []
+        for _, y0, y1, b, tw, th, lines in spans:
             col = 0
             while col < len(cols) and any(not (y1 < a or y0 > z) for a, z in cols[col]):
                 col += 1
@@ -94,10 +103,10 @@ class SceneBuilder:
                 col_w.append(0.0)
             cols[col].append((y0, y1))
             col_w[col] = max(col_w[col], 2 * depth + 6 + tw + 14)
-            b._col, b._geom = col, (y0, y1, st, fs, th, lines)
-        for b in self.doc.brackets:
-            y0, y1, st, fs, th, lines = b._geom
-            x = right + 4 + sum(col_w[:b._col])
+            placed.append((col, y0, y1, b, th, lines))
+        for col, y0, y1, b, th, lines in placed:
+            st, fs = b.style, font_size(b.style, 11)
+            x = right + 4 + sum(col_w[:col])
             ym = (y0 + y1) / 2
             q = min(depth, (y1 - y0) / 4)
             segs = [("M", x, y0), ("Q", x + depth, y0, x + depth, y0 + q), ("L", x + depth, ym - q),
@@ -116,25 +125,26 @@ class SceneBuilder:
         if not entries:
             return None, 0.0, 0.0
         st = self.doc.root.part_styles.get("legend") or {}
-        fs = px(st.get("font-size"), 11)
-        fam = st.get("font-family", self.doc.root.style.get("font-family", "sans-serif"))
+        st = {"font-family": self.doc.root.style.get("font-family", "sans-serif"), **st}
+        fs = font_size(st, 11)
         sw, gap, pad = 14.0, 16.0, 10.0
         title = self.doc.legend_title
-        tw, th, _ = measure(title, fam, fs, True) if title else (0.0, 0.0, [])
+        tw, _, _ = text_block(title, st, 11, bold=True)
         x = pad + (tw + gap if title else 0.0)
-        kids, row_h = [], max(sw, fs * 1.25)
+        kids, row_h = [], max(sw, fs * LINE_H)
         y0 = top + pad
+        ty = y0 + (row_h - fs * LINE_H) / 2  # text top, vertically centred in the row
         if title:
-            kids += self.text([title], 14 + pad, y0 + (row_h - fs * 1.25) / 2, fs, {**st, "font-weight": "bold"}, "start")
+            kids += self.text([title], 14 + pad, ty, fs, {**st, "font-weight": "bold"}, "start")
         for n in entries:
-            ew, _, _ = measure(n.label, fam, fs)
+            ew, _, _ = text_block(n.label, st, 11, bold=False)
             ns = n.style
             r = min(px(ns.get("border-radius"), 3), 4)
             kids.append(Elem("rect", cls=" ".join(["pdg-legend-swatch"] + n.classes),
                              geom={"x": 14 + x, "y": y0 + (row_h - sw) / 2, "w": sw, "h": sw, "rx": r},
                              paint={"fill": ns.get("fill", "#ffffff"), "stroke": ns.get("stroke", "#9ca3af"),
                                     "stroke-width": 1.2}))
-            kids += self.text([n.label], 14 + x + sw + 6, y0 + (row_h - fs * 1.25) / 2, fs, st, "start")
+            kids += self.text([n.label], 14 + x + sw + 6, ty, fs, st, "start")
             x += sw + 6 + ew + gap
         bw, bh = x - gap + pad, row_h + 2 * pad
         box = Elem("rect", cls="pdg-legend-box", geom={"x": 14, "y": top, "w": bw, "h": bh, "rx": 6},
@@ -143,11 +153,15 @@ class SceneBuilder:
 
     # ------------------------------------------------------------ text
     @staticmethod
-    def text(lines, cx, top, fs, st, anchor="middle") -> list[Elem]:
-        lh = fs * 1.25
-        paint = {"fill": st.get("color", "#111827"), "font-family": st.get("font-family", "sans-serif"),
-                 "font-size": fs, "font-weight": st.get("font-weight", "normal"),
-                 "font-style": st.get("font-style", "normal")}
+    def text_paint(st: dict, fs: float) -> dict:
+        return {"fill": st.get("color", "#111827"), "font-family": st.get("font-family", "sans-serif"),
+                "font-size": fs, "font-weight": st.get("font-weight", "normal"),
+                "font-style": st.get("font-style", "normal")}
+
+    @classmethod
+    def text(cls, lines, cx, top, fs, st, anchor="middle") -> list[Elem]:
+        lh = fs * LINE_H
+        paint = cls.text_paint(st, fs)
         return [Elem("text", geom={"x": cx, "y": top + lh * i + fs * 0.95, "text": line, "anchor": anchor},
                      paint=dict(paint)) for i, line in enumerate(lines)]
 
@@ -208,7 +222,7 @@ class SceneBuilder:
         shape = n.attrs.get("shape", "box")
         out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.shape(n, shape, st))
         out.children += self.accent(n, st)
-        fs = px(st.get("font-size"), 14)
+        fs = font_size(st, 14)
         if n.image:
             img = n.image
             ix = n.cx - img["dw"] / 2
@@ -224,89 +238,90 @@ class SceneBuilder:
 
     def _node_text(self, n, st, fs):
         align = st.get("text-align", "center")
-        pt, pr, pb, pl = box4(st.get("padding"), 8)
-        pl += accent_width(st, "left")
-        pr += accent_width(st, "right")
+        pt, pr, pb, pl = node_padding(st)
         top = n.cy - n.text_h / 2
         x, anchor = {"left": (n.ax + pl, "start"), "right": (n.ax + n.w - pr, "end")}.get(align, (n.cx, "middle"))
         out = self.text(n.text_lines, x, top, fs, st, anchor)
         if n.sub_lines:
             sst = n.sub_style or st
-            sfs = px(sst.get("font-size"), 12)
             stop = top + n.text_h - n.sub_h + SUB_GAP
-            out += self.text(n.sub_lines, x, stop, sfs, sst, anchor)
+            out += self.text(n.sub_lines, x, stop, font_size(sst, 12), sst, anchor)
         return out
 
     def accent(self, it, st) -> list[Elem]:
         """`accent-bar: 4px #22c55e` draws a strip inside the box edge (`accent-side`)."""
-        spec = st.get("accent-bar")
-        if not spec or spec.strip() == "none":
+        a = accent(st)
+        if not a:
             return []
-        parts = spec.split()
-        bw = px(parts[0], 4)
-        color = parts[1] if len(parts) > 1 else st.get("stroke", "#22c55e")
-        side = st.get("accent-side", "left")
+        bw, color, side = a
         x = it.ax if side == "left" else it.ax + it.w - bw
         r = min(px(st.get("border-radius"), 6), bw)
         return [Elem("rect", cls="pdg-accent", geom={"x": x, "y": it.ay, "w": bw, "h": it.h, "rx": r},
-                     paint={"fill": color})]
+                     paint={"fill": color or st.get("stroke", "#22c55e")})]
 
     def group(self, g: Group) -> Elem:
         st = g.style
         out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
                    children=self.shape(g, g.attrs.get("shape", "box"), st))
         out.children += self.accent(g, st)
-        if g.label and st.get("title-fill") not in (None, "none") and st.get("label-position", "top") != "bottom":
-            pt = box4(st.get("padding"), 14)[0]
-            bh = pt + g.label_h - 3
-            r = px(st.get("border-radius"), 8)
-            out.children.append(Elem("path", cls="pdg-title-band", paint={"fill": st["title-fill"]}, geom={"segs": [
-                ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
-                ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
-                ("L", g.ax + g.w, g.ay + bh), ("Z",)]}))
-        if g.label and st.get("label-position") == "left":
-            fs = px(st.get("font-size"), 12)
-            x = g.ax + 8 + g.side_w / 2 + fs * 0.35  # pinned near the left edge; padding only moves content
-            out.children += [Elem("text", geom={"x": x, "y": g.cy, "text": g.label.replace("\n", " "),
-                                                "anchor": "middle", "rotate": -90},
-                                  paint=self.text([""], 0, 0, fs, st)[0].paint)]
+        if g.label and title_position(st) == "left":
+            out.children.append(self._side_title(g, st))
         elif g.label:
-            fs = px(st.get("font-size"), 12)
-            pt, pr, pb, pl = box4(st.get("padding"), 14)
-            lines = g.label.split("\n")
-            bold = st.get("font-weight", "normal") in ("bold", "600", "700")
-            tw, th, _ = measure(g.label, st.get("font-family", "sans-serif"), fs, bold)
-            bottom = st.get("label-position", "top") == "bottom"
-            top = g.ay + g.h - pb - g.label_h + 6 if bottom else g.ay + pt
-            x0 = self._title_x(g, st, tw, pl, pr, top, th)
-            box = (x0 - TITLE_PAD, top - 2, x0 + tw + TITLE_PAD, top + th + 2)
-            texts = self.text(lines, x0, top, fs, st, "start")
-            if g.attrs.get("sub") and not bottom:
-                sst = g.sub_style or st
-                texts += self.text(g.attrs["sub"].split("\n"), x0, top + g.title_h + SUB_GAP,
-                                   px(sst.get("font-size"), 11), sst, "start")
-            xs = self._crossings(box[1], box[3], box[0], box[2])
-            if xs:
-                # ask the pipeline for a wider group: children are centred, so widening
-                # by d moves the crossing edges d/2 away from the left-aligned title
-                over = max(box[2] + 2 - min(xs), 0.0)
-                self.title_needs[g.id] = 2 * over + 4
-            if self._crossings(box[1], box[3], box[0], box[2]):
-                # nowhere free to slide to: lift the title above the edges on a patch of
-                # the group's own fill, so the line visibly stops around the text
-                fill = st.get("fill", "none")
-                if fill in ("none", "transparent"):
-                    fill = self.doc.root.style.get("background", "#ffffff")
-                patch = Elem("rect", cls="pdg-title-bg",
-                             geom={"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1], "rx": 3},
-                             paint={"fill": fill})
-                self.title_layer.children.append(Elem("group", cls="pdg-group-title", children=[patch] + texts))
-            else:
-                out.children += texts
+            if has_title_band(st):
+                out.children.append(self._title_band(g, st))
+            self._top_title(g, st, out)
         for c in g.children:
             if isinstance(c, Group):
                 out.children.append(self.group(c))
         return out
+
+    def _title_band(self, g: Group, st: dict) -> Elem:
+        """`title-fill`: a band behind the title, rounded like the group's top corners."""
+        bh = box4(st.get("padding"), 14)[0] + g.label_h - 3
+        r = px(st.get("border-radius"), 8)
+        return Elem("path", cls="pdg-title-band", paint={"fill": st["title-fill"]}, geom={"segs": [
+            ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
+            ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
+            ("L", g.ax + g.w, g.ay + bh), ("Z",)]})
+
+    def _side_title(self, g: Group, st: dict) -> Elem:
+        """`label-position: left`: the title turned 90°, pinned near the left edge (padding
+        moves the content, not the title, so an edge can pass between them)."""
+        fs = font_size(st, 12)
+        x = g.ax + 8 + g.side_w / 2 + fs * 0.35
+        return Elem("text", geom={"x": x, "y": g.cy, "text": g.label.replace("\n", " "),
+                                  "anchor": "middle", "rotate": -90}, paint=self.text_paint(st, fs))
+
+    def _top_title(self, g: Group, st: dict, out: Elem) -> None:
+        """Title (and `sub=` line) at the top or bottom, sliding clear of crossing edges."""
+        fs = font_size(st, 12)
+        pt, pr, pb, pl = box4(st.get("padding"), 14)
+        tw, th, _ = text_block(g.label, st, 12)
+        bottom = title_position(st) == "bottom"
+        top = g.ay + g.h - pb - g.label_h + 6 if bottom else g.ay + pt
+        x0 = self._title_x(g, st, tw, pl, pr, top, th)
+        box = (x0 - TITLE_PAD, top - 2, x0 + tw + TITLE_PAD, top + th + 2)
+        texts = self.text(g.label.split("\n"), x0, top, fs, st, "start")
+        if g.attrs.get("sub") and not bottom:
+            sst = g.sub_style or st
+            texts += self.text(g.attrs["sub"].split("\n"), x0, top + g.title_h + SUB_GAP,
+                               font_size(sst, 11), sst, "start")
+        xs = self._crossings(box[1], box[3], box[0], box[2])
+        if not xs:
+            out.children += texts
+            return
+        # ask the pipeline for a wider group: children are centred, so widening by d
+        # moves the crossing edges d/2 away from the left-aligned title
+        self.title_needs[g.id] = 2 * max(box[2] + 2 - min(xs), 0.0) + 4
+        # nowhere free to slide to: lift the title above the edges on a patch of the
+        # group's own fill, so the line visibly stops around the text
+        fill = st.get("fill", "none")
+        if fill in ("none", "transparent"):
+            fill = self.doc.root.style.get("background", "#ffffff")
+        patch = Elem("rect", cls="pdg-title-bg",
+                     geom={"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1], "rx": 3},
+                     paint={"fill": fill})
+        self.title_layer.children.append(Elem("group", cls="pdg-group-title", children=[patch] + texts))
 
     def _title_x(self, g, st, tw, pl, pr, top, th) -> float:
         """Preferred x from text-align; slide along the title band if edges cross there."""
@@ -432,25 +447,19 @@ class SceneBuilder:
         """Numbered circle on the edge, a third of the way along its path. With a label the
         badge sits just left of the label box, so neither covers the other."""
         st = e.step_style or e.style
-        fs = px(st.get("font-size"), 11)
+        st = {**st, "font-weight": st.get("font-weight", "bold")}
+        fs = font_size(st, 11)
         txt = e.attrs["step"][:3]
-        w, h, _ = measure(txt, st.get("font-family", "sans-serif"), fs, True)
+        w, h, _ = text_block(txt, st, 11)
         r = max(w, h) / 2 + 3
-        lens = [math.dist(a, b) for a, b in zip(poly, poly[1:])]
-        goal, acc = sum(lens) / 3, 0.0
-        cx, cy = poly[0]
-        for (a, b), l in zip(zip(poly, poly[1:]), lens):
-            if acc + l >= goal and l:
-                t = (goal - acc) / l
-                cx, cy = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
-                break
-            acc += l
         if label_box:
             cx, cy = label_box["x"] - r - 3, label_box["y"] + label_box["h"] / 2
+        else:
+            cx, cy = point_along(poly, 1 / 3)
         circ = Elem("circle", cls="pdg-step", geom={"cx": cx, "cy": cy, "r": r},
                     paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"),
                            "stroke-width": 1.5})
-        return [circ] + self.text([txt], cx, cy - fs * 1.25 / 2, fs, {**st, "font-weight": st.get("font-weight", "bold")})
+        return [circ] + self.text([txt], cx, cy - fs * LINE_H / 2, fs, st)
 
     @staticmethod
     def head(kind, tip, d, hl, color, width, bg="#ffffff") -> Elem:
@@ -486,8 +495,8 @@ class SceneBuilder:
 
     def edge_label(self, e, poly) -> list[Elem]:
         st = e.label_style or e.style
-        fs = px(st.get("font-size"), 11)
-        w, h, lines = measure(e.label, st.get("font-family", "sans-serif"), fs)
+        fs = font_size(st, 11)
+        w, h, lines = text_block(e.label, st, 11, bold=False)  # same call as layout.label_gaps
         # bent edges: the run into the target is the edge's own (a fan-out bus is shared),
         # so labels go there when it fits; otherwise the longest run
         segs = list(zip(poly, poly[1:]))

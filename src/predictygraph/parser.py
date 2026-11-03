@@ -11,7 +11,7 @@ from pathlib import Path
 from .model import Bracket, Document, Edge, Group, Node
 from .safe import MAX_EDGES, safe_path
 
-MAX_LEGEND = 64
+MAX_ANNOTATIONS = 64  # legend entries / brackets per diagram
 
 
 class PdgSyntaxError(ValueError):
@@ -135,6 +135,13 @@ class Parser:
                 raise PdgSyntaxError(f"unexpected token {val!r}", lineno)
         return label, classes, attrs
 
+    def _annotation_room(self, stmt: str, existing: list, what: str, lineno: int) -> None:
+        """`legend` / `bracket`: top level only, at most MAX_ANNOTATIONS of each."""
+        if self.scope is not self.root:
+            raise PdgSyntaxError(f"'{stmt}' only allowed at top level", lineno)
+        if len(existing) >= MAX_ANNOTATIONS:
+            raise PdgSyntaxError(f"too many {what} (limit {MAX_ANNOTATIONS})", lineno)
+
     def _get_node(self, nid: str, lineno: int):
         item = self.doc.items.get(nid)
         if item is None:
@@ -192,27 +199,22 @@ class Parser:
                 d["__classes__"] = " ".join(classes)
             return
         if head == "bracket" and len(toks) >= 2 and toks[1][0] == "ident":
-            if self.scope is not self.root:
-                raise PdgSyntaxError("'bracket' only allowed at top level", lineno)
+            self._annotation_room(head, self.doc.brackets, "brackets", lineno)
             ids, i = [], 1
             while i < len(toks) and toks[i][0] in ("ident", "punct") and toks[i][1] != "{":
                 if toks[i][0] == "ident":
                     ids.append(toks[i][1])
                 i += 1
             label, classes, attrs = self._tail(toks, i, lineno)
-            if len(self.doc.brackets) >= MAX_LEGEND:
-                raise PdgSyntaxError(f"too many brackets (limit {MAX_LEGEND})", lineno)
             self.doc.brackets.append(Bracket(ids=ids, label=label or "", classes=list(classes), attrs=attrs))
             return
         if head == "legend" and (len(toks) == 1 or toks[1][0] in ("string", "cls")):
-            if self.scope is not self.root:
-                raise PdgSyntaxError("'legend' only allowed at top level", lineno)
             label, classes, attrs = self._tail(toks, 1, lineno)
             if not classes:  # `legend "Key"` names the box
+                self._annotation_room(head, [], "", lineno)
                 self.doc.legend_title = label
                 return
-            if len(self.doc.legend) >= MAX_LEGEND:
-                raise PdgSyntaxError(f"too many legend entries (limit {MAX_LEGEND})", lineno)
+            self._annotation_room(head, self.doc.legend, "legend entries", lineno)
             entry = Node(id=f"pdg-legend-{len(self.doc.legend)}", label=label or " ".join(classes),
                          classes=list(classes), attrs=attrs, parent=self.root)
             self.doc.legend.append(entry)
