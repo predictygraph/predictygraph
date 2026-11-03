@@ -136,8 +136,9 @@ class LineLayout(Layout):
         gap = px(opt(self.g, "gap", "24"))
         align = opt(self.g, "align", "center")
         cross = max((k.h if horizontal else k.w) for k in self.kids)
-        pos = 0.0
-        for k in self.kids:
+        need = self.label_gaps(horizontal)
+        pos, last = 0.0, 0.0
+        for idx, k in enumerate(self.kids):
             if align == "stretch":  # every child as wide (column) / tall (row) as the widest
                 if horizontal:
                     k.h = cross
@@ -148,14 +149,37 @@ class LineLayout(Layout):
                         k.ox += grow / 2  # content stays left unless the tier asks to centre it
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
+            step = max(gap, need.get(idx, 0.0))
             if horizontal:
                 k.x, k.y = pos, off
-                pos += k.w + gap
+                pos += k.w + step
             else:
                 k.x, k.y = off, pos
-                pos += k.h + gap
-        pos -= gap
+                pos += k.h + step
+            last = step
+        pos -= last
         return (pos, cross) if horizontal else (cross, pos)
+
+    def label_gaps(self, horizontal: bool) -> dict[int, float]:
+        """Gap needed after child i so labels of edges between neighbours i and i+1 fit
+        (a row only: a label runs along the gap). Room = label width + arrowhead + margin."""
+        if not horizontal:
+            return {}
+        index = {k.id: i for i, k in enumerate(self.kids)}
+        need: dict[int, float] = {}
+        for e in self.doc.edges:
+            if not e.label:
+                continue
+            a, b = direct_child(self.doc.items[e.src], self.g), direct_child(self.doc.items[e.dst], self.g)
+            if a is None or b is None or a is b:
+                continue
+            i, j = sorted((index[a.id], index[b.id]))
+            if j != i + 1:
+                continue
+            st = e.label_style or e.style
+            w, _, _ = measure(e.label, st.get("font-family", "sans-serif"), px(st.get("font-size"), 11))
+            need[i] = max(need.get(i, 0.0), w + 34)
+        return need
 
 
 class GridLayout(Layout):
