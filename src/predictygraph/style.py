@@ -185,6 +185,9 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
     number_steps(doc)
     root.style = sheet.resolve_vars(sheet.compute(root, []))
     root.part_styles = {k: part_style(sheet, k, root, [], root.style) for k in ("caption", "legend")}
+    for b in doc.brackets:
+        b.style = sheet.resolve_vars({"font-family": root.style.get("font-family", "sans-serif"),
+                                      **sheet.compute(b, [root])})
 
     for item in [*doc.walk(), *doc.legend]:
         anc = item.ancestors()  # nearest first; root last

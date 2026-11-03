@@ -47,6 +47,10 @@ class SceneBuilder:
         if self.title_layer.children:
             layers.append(self.title_layer)
         w, h = root.w, root.h
+        if self.doc.brackets:
+            br, bw = self.brackets(w)
+            layers.append(br)
+            w += bw
         legend, lw, lh = self.legend(h)
         if legend:
             layers.append(legend)
@@ -62,6 +66,49 @@ class SceneBuilder:
             layers.append(Elem("group", cls="pdg-caption", children=self.text(lines, x, h, fs, st, anchor)))
             h += ch + 14
         return Scene(w, h, root.style.get("background"), layers)
+
+    def brackets(self, right: float) -> tuple[Elem, float]:
+        """`bracket a, b "note"`: a curly bracket right of the diagram spanning the listed
+        items top to bottom, the note beside it. Brackets that overlap vertically are
+        stacked outward. Returns the layer and the extra canvas width."""
+        out = Elem("group", cls="pdg-brackets")
+        depth = 8.0
+        spans = []
+        for b in self.doc.brackets:
+            items = [self.doc.items[i] for i in b.ids]
+            y0, y1 = min(i.ay for i in items), max(i.ay + i.h for i in items)
+            st = b.style
+            fs = px(st.get("font-size"), 11)
+            tw, th, lines = measure(b.label, st.get("font-family", "sans-serif"), fs) if b.label \
+                else (0.0, 0.0, [])
+            spans.append((y1 - y0, y0, y1, b, st, fs, tw, th, lines))
+        spans.sort(key=lambda s: s[0])  # short spans nearest the diagram, long ones outside
+        cols: list[list[tuple[float, float]]] = []
+        col_w: list[float] = []
+        for _, y0, y1, b, st, fs, tw, th, lines in spans:
+            col = 0
+            while col < len(cols) and any(not (y1 < a or y0 > z) for a, z in cols[col]):
+                col += 1
+            if col == len(cols):
+                cols.append([])
+                col_w.append(0.0)
+            cols[col].append((y0, y1))
+            col_w[col] = max(col_w[col], 2 * depth + 6 + tw + 14)
+            b._col, b._geom = col, (y0, y1, st, fs, th, lines)
+        for b in self.doc.brackets:
+            y0, y1, st, fs, th, lines = b._geom
+            x = right + 4 + sum(col_w[:b._col])
+            ym = (y0 + y1) / 2
+            q = min(depth, (y1 - y0) / 4)
+            segs = [("M", x, y0), ("Q", x + depth, y0, x + depth, y0 + q), ("L", x + depth, ym - q),
+                    ("Q", x + depth, ym, x + 2 * depth, ym), ("Q", x + depth, ym, x + depth, ym + q),
+                    ("L", x + depth, y1 - q), ("Q", x + depth, y1, x, y1)]
+            kids = [Elem("path", cls="pdg-bracket-line", geom={"segs": segs},
+                         paint={"fill": "none", "stroke": st.get("stroke", "#9ca3af"),
+                                "stroke-width": px(st.get("stroke-width"), 1.5), "stroke-linecap": "round"})]
+            kids += self.text(lines, x + 2 * depth + 6, ym - th / 2, fs, st, "start")
+            out.children.append(Elem("group", cls=" ".join(["pdg-bracket"] + b.classes), children=kids))
+        return out, 4 + sum(col_w)
 
     def legend(self, top: float) -> tuple[Elem | None, float, float]:
         """`legend .cls "text"` entries: a key box under the diagram, swatches styled like nodes."""
@@ -217,7 +264,13 @@ class SceneBuilder:
                 ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
                 ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
                 ("L", g.ax + g.w, g.ay + bh), ("Z",)]}))
-        if g.label:
+        if g.label and st.get("label-position") == "left":
+            fs = px(st.get("font-size"), 12)
+            x = g.ax + 8 + g.side_w / 2 + fs * 0.35  # pinned near the left edge; padding only moves content
+            out.children += [Elem("text", geom={"x": x, "y": g.cy, "text": g.label.replace("\n", " "),
+                                                "anchor": "middle", "rotate": -90},
+                                  paint=self.text([""], 0, 0, fs, st)[0].paint)]
+        elif g.label:
             fs = px(st.get("font-size"), 12)
             pt, pr, pb, pl = box4(st.get("padding"), 14)
             lines = g.label.split("\n")

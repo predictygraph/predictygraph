@@ -63,6 +63,7 @@ class Group(Item):
     oy: float = 0.0
     label_h: float = 0.0
     title_h: float = 0.0  # label only; label_h also counts the subtitle
+    side_w: float = 0.0  # label-position: left -> width of the rotated-title column
     part_styles: dict[str, dict[str, str]] = field(default_factory=dict)  # root: caption, legend
 
 
@@ -88,6 +89,20 @@ class Edge:
 
 
 @dataclass
+class Bracket:
+    """`bracket a, b "note"`: a curly bracket beside the span of the listed items."""
+    ids: list[str]
+    label: str = ""
+    classes: list[str] = field(default_factory=list)
+    attrs: dict[str, str] = field(default_factory=dict)
+    style: dict[str, str] = field(default_factory=dict)
+    kind: str = "bracket"
+    id: str = ""
+    _col: int = 0  # set by the scene builder: which column of brackets
+    _geom: tuple = ()
+
+
+@dataclass
 class Document:
     root: Group
     edges: list[Edge] = field(default_factory=list)
@@ -97,6 +112,7 @@ class Document:
     allow_outside: bool = False  # let image=/css "..." read files outside base_dir
     legend: list[Node] = field(default_factory=list)  # `legend .cls "text"` entries (not laid out)
     legend_title: str | None = None
+    brackets: list["Bracket"] = field(default_factory=list)
 
     def walk(self, g: Group | None = None):
         g = g or self.root

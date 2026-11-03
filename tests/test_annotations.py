@@ -75,3 +75,33 @@ def test_accent_bar_widens_node_and_draws():
 def test_title_fill_band():
     _, sc = scene('css { group { title-fill: #dbeafe; } }\ngroup g "G" {\n a\n}\n')
     assert "pdg-title-band" in classes(sc)
+
+
+def test_bracket_widens_canvas_and_draws_note():
+    _, base = scene('graph layout=column\na\nb\nc\n')
+    _, sc = scene('graph layout=column\na\nb\nc\nbracket a, b "first two"\nbracket a, c "all"\n')
+    assert sc.width > base.width
+    assert {"first two", "all"} <= set(texts(sc))
+    assert classes(sc).count("pdg-bracket-line") == 2
+
+
+def test_bracket_unknown_id_is_an_error():
+    import pytest
+    from predictygraph.parser import PdgSyntaxError
+    with pytest.raises(PdgSyntaxError):
+        parse('a\nbracket a, nope "x"\n')
+
+
+def test_left_label_is_rotated_and_takes_a_column():
+    src = 'css { group { label-position: left; } }\ngroup g "Kernel space" {\n a\n}\n'
+    doc, sc = scene(src)
+    g = doc.items["g"]
+    assert g.side_w > 0
+    rotated = []
+    stack = list(sc.layers)
+    while stack:
+        e = stack.pop()
+        if e.kind == "text" and e.geom.get("rotate"):
+            rotated.append(e.geom["text"])
+        stack += e.children
+    assert rotated == ["Kernel space"]

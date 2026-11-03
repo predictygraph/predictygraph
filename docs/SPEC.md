@@ -137,9 +137,16 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
   widens the box by its width; `accent-side: left|right`. `accent-bar: none` removes it.
 - **Header band:** CSS `title-fill: #dbeafe` on a group fills a strip behind its title
   and subtitle. Ignored with `label-position: bottom`.
+- **Vertical panel label:** CSS `label-position: left` on a group turns its title 90°
+  and puts it in a column at the panel's left edge. Padding moves the content, not the
+  label, so a left `padding` makes room for an edge to pass between them.
+- **Side brackets:** `bracket a, b "note"` draws a curly bracket right of the diagram
+  from the top of the highest listed item to the bottom of the lowest, with the note
+  beside it. Overlapping brackets stack outward, shorter spans nearest the diagram.
+  Top level only; styled with `bracket` (`stroke`, `stroke-width`, text keys).
 
-Not yet supported: side brackets over a range of nodes, vertical panel labels,
-highlight boxes that don't change the layout, and badges on node corners.
+Not yet supported: highlight boxes that don't change the layout, and badges on node
+corners.
 
 ## 5. Layouts (balancing styles)
 

@@ -516,19 +516,27 @@ def layout_group(g: Group, doc: Document) -> None:
         lay = LAYOUTS[g.attrs["layout"]](g, doc)
         cw, ch = lay.run()
     g.label_h = g.title_h = 0.0
+    g.side_w = 0.0  # label-position: left -> a column for the rotated title
     lw = 0.0
-    if g.label and g.kind == "group":
+    pos = g.style.get("label-position", "top")
+    if g.label and g.kind == "group" and pos == "left":
+        tw, th, _ = text_block(g.label, g.style, 12)
+        g.title_h = th
+        g.side_w = th + 12
+        lw = 0.0
+        ch = max(ch, tw - pt - pb + 20)  # tall enough for the rotated title, with a margin
+    elif g.label and g.kind == "group":
         lw, g.title_h, _ = text_block(g.label, g.style, 12)
         sw, sh, _ = text_block(g.attrs.get("sub"), g.sub_style or g.style, 11)
         lw = max(lw, sw)
         g.label_h = g.title_h + (sh + SUB_GAP if sh else 0.0) + 6
-        if g.style.get("title-fill") not in (None, "none") and g.style.get("label-position", "top") != "bottom":
+        if g.style.get("title-fill") not in (None, "none") and pos != "bottom":
             g.label_h += 6
     inner_w = max(cw, lw) + getattr(g, "extra_w", 0.0)  # extra_w: room requested for the title
-    top = g.style.get("label-position", "top") != "bottom"
-    g.ox = pl + (inner_w - cw) / 2
+    top = pos not in ("bottom", "left")
+    g.ox = pl + g.side_w + (inner_w - cw) / 2
     g.oy = pt + (g.label_h if top else 0)
-    g.w = inner_w + pl + pr
+    g.w = inner_w + pl + pr + g.side_w
     g.h = ch + pt + pb + g.label_h
     g.layout_obj = lay
 

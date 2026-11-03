@@ -71,6 +71,8 @@ class SvgWriter:
             return f"<g {self.attrs_str(base)}>\n{inner}\n</g>" if base else f"<g>\n{inner}\n</g>"
         if el.kind == "text":
             a = {"x": num(float(g["x"])), "y": num(float(g["y"])), "text-anchor": g.get("anchor", "middle")}
+            if g.get("rotate"):  # about the text's own anchor point
+                a["transform"] = f"rotate({num(float(g['rotate']))} {a['x']} {a['y']})"
             a.update(self.paint_attrs(el))
             a.update(base)
             return f"<text {self.attrs_str(a)}>{escape(g['text'])}</text>"

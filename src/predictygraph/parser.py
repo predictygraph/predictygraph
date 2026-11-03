@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .model import Document, Edge, Group, Node
+from .model import Bracket, Document, Edge, Group, Node
 from .safe import MAX_EDGES, safe_path
 
 MAX_LEGEND = 64
@@ -191,6 +191,19 @@ class Parser:
             if classes:
                 d["__classes__"] = " ".join(classes)
             return
+        if head == "bracket" and len(toks) >= 2 and toks[1][0] == "ident":
+            if self.scope is not self.root:
+                raise PdgSyntaxError("'bracket' only allowed at top level", lineno)
+            ids, i = [], 1
+            while i < len(toks) and toks[i][0] in ("ident", "punct") and toks[i][1] != "{":
+                if toks[i][0] == "ident":
+                    ids.append(toks[i][1])
+                i += 1
+            label, classes, attrs = self._tail(toks, i, lineno)
+            if len(self.doc.brackets) >= MAX_LEGEND:
+                raise PdgSyntaxError(f"too many brackets (limit {MAX_LEGEND})", lineno)
+            self.doc.brackets.append(Bracket(ids=ids, label=label or "", classes=list(classes), attrs=attrs))
+            return
         if head == "legend" and (len(toks) == 1 or toks[1][0] in ("string", "cls")):
             if self.scope is not self.root:
                 raise PdgSyntaxError("'legend' only allowed at top level", lineno)
@@ -313,6 +326,10 @@ class Parser:
             for nid in (e.src, e.dst):
                 if nid not in self.doc.items:
                     raise PdgSyntaxError(f"unknown id {nid!r}", 0)
+        for b in self.doc.brackets:
+            missing = [i for i in b.ids if i not in self.doc.items]
+            if missing or not b.ids:
+                raise PdgSyntaxError(f"bracket: unknown id {missing[0]!r}" if missing else "bracket needs ids", 0)
         return self.doc
 
 
