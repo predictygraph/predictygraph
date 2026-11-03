@@ -105,3 +105,22 @@ def test_left_label_is_rotated_and_takes_a_column():
             rotated.append(e.geom["text"])
         stack += e.children
     assert rotated == ["Kernel space"]
+
+
+def test_step_on_short_arrow_sits_beside_it_and_clear_of_boxes():
+    doc, sc = scene('graph layout=column gap=4 steps=auto\na "top box"\nb "bottom box"\na -> b\n')
+    circles = []
+    stack = list(sc.layers)
+    while stack:
+        e = stack.pop()
+        if e.kind == "circle" and "pdg-step" in (e.cls or ""):
+            circles.append(e.geom)
+        stack += e.children
+    (c,) = circles
+    for n in (doc.items["a"], doc.items["b"]):
+        inside_x = n.ax - c["r"] < c["cx"] < n.ax + n.w + c["r"]
+        inside_y = n.ay - c["r"] < c["cy"] < n.ay + n.h + c["r"]
+        assert not (inside_x and inside_y)
+    # the column gap grew to fit the circle, even though gap=4 was asked for
+    a, b = doc.items["a"], doc.items["b"]
+    assert b.ay - (a.ay + a.h) >= 2 * c["r"]

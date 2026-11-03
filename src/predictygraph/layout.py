@@ -144,14 +144,13 @@ class LineLayout(Layout):
         return (pos, cross) if horizontal else (cross, pos)
 
     def label_gaps(self, horizontal: bool) -> dict[int, float]:
-        """Gap needed after child i so labels of edges between neighbours i and i+1 fit
-        (a row only: a label runs along the gap). Room = label width + arrowhead + margin."""
-        if not horizontal:
-            return {}
+        """Gap needed after child i so what sits on the edges between neighbours i and i+1
+        fits. Row: the edge label (plus its step circle) runs along the gap. Column: a step
+        circle sits beside the edge, so the gap must be at least one circle plus margins."""
         index = {k.id: i for i, k in enumerate(self.kids)}
         need: dict[int, float] = {}
         for e in self.doc.edges:
-            if not e.label:
+            if not (e.label if horizontal else e.attrs.get("step")):
                 continue
             a, b = direct_child(self.doc.items[e.src], self.g), direct_child(self.doc.items[e.dst], self.g)
             if a is None or b is None or a is b:
@@ -159,11 +158,15 @@ class LineLayout(Layout):
             i, j = sorted((index[a.id], index[b.id]))
             if j != i + 1:
                 continue
-            w, _, _ = text_block(e.label, e.label_style or e.style, 11, bold=False)
-            if e.attrs.get("step"):  # the step badge sits just left of the label
-                bw, bh, _ = text_block(e.attrs["step"][:3], e.step_style or e.style, 11, bold=True)
-                w += max(bw, bh) + 12
-            need[i] = max(need.get(i, 0.0), w + 34)
+            step = 0.0
+            if e.attrs.get("step"):  # circle diameter, as drawn by SceneBuilder.step_badge
+                sw, sh, _ = text_block(e.attrs["step"][:3], e.step_style or e.style, 11, bold=True)
+                step = max(sw, sh) + 6
+            if horizontal:
+                w, _, _ = text_block(e.label, e.label_style or e.style, 11, bold=False)
+                need[i] = max(need.get(i, 0.0), w + (step + 6 if step else 0.0) + 34)
+            else:
+                need[i] = max(need.get(i, 0.0), step + 14)
         return need
 
 

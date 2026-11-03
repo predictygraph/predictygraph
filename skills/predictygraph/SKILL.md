@@ -79,7 +79,8 @@ legend .blue "third party"
 - **Two lines in a box:** `api "API" sub="checks the token"`. The second line is
   smaller and grey.
 - **Numbered steps:** `graph steps=auto` numbers every arrow in file order;
-  `a -> b step=3` sets one by hand.
+  `a -> b step=3` sets one by hand. Circles on short arrows sit beside the arrow, so
+  don't shrink them or widen gaps by hand.
 - **Equal-width layers / equal-height panels:** `align=stretch` on the parent.
 - **Line up boxes in different panels:** `align-x=ID` centres a box (or a group) over
   another one, so the arrow between them is straight.

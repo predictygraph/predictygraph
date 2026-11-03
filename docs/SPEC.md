@@ -127,8 +127,10 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
 
 ### 4.1 Annotations
 
-- **Steps:** `a -> b step=3` draws a numbered circle on the edge, a third of the way
-  along it (or just left of the edge label when there is one). `graph steps=auto`
+- **Steps:** `a -> b step=3` draws a numbered circle for the edge: just left of the edge
+  label when there is one; otherwise on the line a third of the way along, or, when the
+  edge is too short for that (three circle widths), beside its middle, clear of any box.
+  Column gaps with a numbered edge widen to fit the circle. `graph steps=auto`
   numbers every edge without its own `step=` in file order. Styled with `step`
   (`fill` is the circle, `color` the number).
 - **Legend:** `legend "Key"` names the box; `legend .green "HAMi component"` adds an

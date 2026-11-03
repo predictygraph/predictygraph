@@ -477,8 +477,10 @@ class SceneBuilder:
         return out
 
     def step_badge(self, e, poly, label_box=None) -> list[Elem]:
-        """Numbered circle on the edge, a third of the way along its path. With a label the
-        badge sits just left of the label box, so neither covers the other."""
+        """Numbered circle for an edge. Next to the label when there is one; on the line a
+        third of the way along when the edge is long enough to hold it with room to spare;
+        otherwise beside the middle of the edge, so a short arrow between stacked boxes
+        stays a visible line and the circle never sits on a box."""
         st = e.step_style or e.style
         st = {**st, "font-weight": st.get("font-weight", "bold")}
         fs = font_size(st, 11)
@@ -488,11 +490,50 @@ class SceneBuilder:
         if label_box:
             cx, cy = label_box["x"] - r - 3, label_box["y"] + label_box["h"] / 2
         else:
-            cx, cy = point_along(poly, 1 / 3)
+            cx, cy = self._step_spot(e, poly, r)
         circ = Elem("circle", cls="pdg-step", geom={"cx": cx, "cy": cy, "r": r},
                     paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"),
                            "stroke-width": 1.5})
         return [circ] + self.text([txt], cx, cy - fs * LINE_H / 2, fs, st)
+
+    STEP_ROOM = 3.0  # an edge must be this many circle diameters long to carry its step
+
+    def _step_spot(self, e, poly, r) -> tuple[float, float]:
+        """Where a label-less step circle goes (see step_badge)."""
+        length = sum(math.dist(a, b) for a, b in zip(poly, poly[1:]))
+        on_line = point_along(poly, 1 / 3)
+        if length >= self.STEP_ROOM * 2 * r and not self._on_a_box(on_line, r, e):
+            return on_line
+        mx, my = point_along(poly, 1 / 2)
+        # the segment holding the midpoint gives the edge's direction there
+        ax, ay, bx, by = *poly[0], *poly[-1]
+        acc, half = 0.0, length / 2
+        for a, b in zip(poly, poly[1:]):
+            seg = math.dist(a, b)
+            if acc + seg >= half:
+                (ax, ay), (bx, by) = a, b
+                break
+            acc += seg
+        d = math.hypot(bx - ax, by - ay) or 1.0
+        nx, ny = -(by - ay) / d, (bx - ax) / d  # unit normal
+        off = r + 4
+        sides = [(mx - nx * off, my - ny * off), (mx + nx * off, my + ny * off)]
+        if abs(by - ay) >= abs(bx - ax):  # vertical-ish edge: prefer the left side
+            sides.sort(key=lambda p: p[0])
+        else:                             # horizontal-ish edge: prefer above
+            sides.sort(key=lambda p: p[1])
+        free = [p for p in sides if not self._on_a_box(p, r, e)]
+        return (free or sides)[0]
+
+    def _on_a_box(self, p, r, e) -> bool:
+        """Would a circle of radius r at p overlap any node box (with a small margin)?"""
+        x, y = p
+        for n in self.doc.walk():
+            if isinstance(n, Group):
+                continue
+            if n.ax - r - 2 < x < n.ax + n.w + r + 2 and n.ay - r - 2 < y < n.ay + n.h + r + 2:
+                return True
+        return False
 
     @staticmethod
     def head(kind, tip, d, hl, color, width, bg="#ffffff") -> Elem:
