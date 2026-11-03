@@ -13,16 +13,40 @@ Editor support: [tree-sitter-pdg](https://github.com/predictygraph/tree-sitter-p
 Rendered examples and the gallery: [predictygraph.github.io](https://predictygraph.github.io/). This repo keeps
 only `.pdg` sources; images live in the docs repo (git-lfs).
 
+## Install
+
 ```bash
-uv run pdg examples/hami_flow.pdg                    # -> examples/hami_flow.svg (not committed)
-uv run pdg diagram.pdg --css theme.css -o out.svg
-uv run pdg diagram.pdg -o out.png                    # animated PNG (APNG)
-uv run pdg diagram.pdg --check                       # validate only
-uv run pdg diagram.pdg -o d.png --width 1000 --colors 64   # small PNG for chat
-uv run pdg diagram.pdg --target web                  # size labels to fit any browser font
+uv tool install "predictygraph[apng]"    # or: pipx install "predictygraph[apng]"
 ```
 
-`pdg` is the short alias of the `predictygraph` command.
+`[apng]` adds PNG output. `pdg` is the short alias of the `predictygraph` command.
+
+## Use
+
+```bash
+pdg examples/annotations.pdg                     # -> examples/annotations.svg (not committed)
+pdg diagram.pdg --css theme.css -o out.svg
+pdg diagram.pdg -o out.png                       # PNG (animated if the diagram moves)
+pdg diagram.pdg --check                          # validate only
+pdg diagram.pdg -o d.png --width 1000 --colors 64   # small PNG for chat
+pdg diagram.pdg --target web                     # size labels to fit any browser font
+```
+
+From a checkout, prefix these with `uv run`. Start with
+[examples/annotations.pdg](examples/annotations.pdg): one small diagram that uses every
+annotation feature, with a comment for each.
+
+## Agent skill
+
+[skills/predictygraph](skills/predictygraph) teaches an AI agent to write, render and
+check `.pdg` diagrams.
+
+```bash
+# Hermes Agent
+hermes skills install https://raw.githubusercontent.com/predictygraph/predictygraph/master/skills/predictygraph/SKILL.md
+# Claude Code and other agents that read SKILL.md folders: copy the folder
+cp -r skills/predictygraph ~/.claude/skills/
+```
 
 ## Credits
 
