@@ -30,3 +30,10 @@ path = "src/predictygraph/fonts/Carlito-*.ttf"
 precedence = "override"
 SPDX-FileCopyrightText = "2010-2013 tyPoland Lukasz Dziedzic"
 SPDX-License-Identifier = "OFL-1.1"
+
+# The agent skill: SKILL.md must start with YAML frontmatter, so no header comment there.
+[[annotations]]
+path = "skills/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The predictygraph Authors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
