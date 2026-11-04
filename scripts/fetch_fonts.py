@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: 2026 The predictygraph Authors
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 """Fetch the metric fonts predictygraph bundles into src/predictygraph/fonts/.
 
 DejaVu Sans (Linux default), Liberation Sans/Serif (same widths as Arial/Helvetica and
@@ -31,6 +31,14 @@ SOURCES = {
 FILES = {
     "https://github.com/googlefonts/carlito/raw/main/fonts/ttf/Carlito-Regular.ttf": "Carlito-Regular.ttf",
     "https://github.com/googlefonts/carlito/raw/main/fonts/ttf/Carlito-Bold.ttf": "Carlito-Bold.ttf",
+    "https://github.com/google/fonts/raw/main/ofl/roboto/OFL.txt": "LICENSE-Roboto.txt",
+}
+# Variable fonts: one download, pinned to fixed instances (name -> axis values).
+VARIABLE = {
+    "https://github.com/google/fonts/raw/main/ofl/roboto/Roboto%5Bwdth,wght%5D.ttf": {
+        "Roboto-Regular.ttf": {"wght": 400, "wdth": 100},
+        "Roboto-Bold.ttf": {"wght": 700, "wdth": 100},
+    },
 }
 
 
@@ -52,12 +60,24 @@ class FontFetcher:
                         (self.out / name).write_bytes(tar.extractfile(m).read())
                         print(name)
 
+    def from_variable(self, url: str, instances: dict[str, dict[str, float]]) -> None:
+        """Pin a variable font to fixed weights (needs fonttools), so widths match exactly."""
+        from fontTools.ttLib import TTFont
+        from fontTools.varLib.instancer import instantiateVariableFont
+        data = self.get(url)
+        for name, axes in instances.items():
+            font = instantiateVariableFont(TTFont(io.BytesIO(data)), axes)
+            font.save(str(self.out / name))
+            print(name)
+
     def run(self) -> None:
         for url, wanted in SOURCES.items():
             self.from_archive(url, wanted)
         for url, name in FILES.items():
             (self.out / name).write_bytes(self.get(url))
             print(name)
+        for url, instances in VARIABLE.items():
+            self.from_variable(url, instances)
 
 
 def main() -> None:
