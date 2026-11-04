@@ -31,3 +31,20 @@ def test_fan_spread_turns_together_at_45():
     assert a[1][0] == b[1][0] == 30  # both turn right after the stub
     for p in (a, b):
         assert abs(abs(p[2][0] - p[1][0]) - abs(p[2][1] - p[1][1])) < 0.01  # 45°
+
+
+def test_fan_spread_straightens_the_near_level_branch():
+    src = ('graph dir=LR route=ortho diagonal=always balance=center\n'
+           'group f layout=column gap=60 { a "A"\n b "B" }\n'
+           'group s layout=column { s1 "1"\n s2 "2"\n s3 "3"\n s4 "4"\n s5 "5"\n s6 "6" }\n'
+           'a -> s1, s2, s3 fan=spread\nb -> s4, s5, s6 fan=spread\n')
+    from predictygraph import parse
+    from predictygraph import _layout_and_route, _style
+    doc = parse(src)
+    _style(doc, None, None, None)
+    router = _layout_and_route(doc)
+    flat = 0
+    for e in doc.edges:
+        pts, _ = router.geometry(e)
+        flat += abs(pts[0][1] - pts[-1][1]) < 0.5
+    assert flat == 2

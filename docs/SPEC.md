@@ -125,6 +125,9 @@ Per-edge attributes override arrow defaults:
 - `fan=spread` — edges leaving (or entering) one side of a node use separate ports spread
   along that side, turn right after their stub and slant at `diagonal-angle`, so a
   fan-out reads as parallel branches instead of merging into one ortho bus.
+  A spread branch that already ends within 24px of level with its target is snapped
+  straight (one per source): the column/row gap between sources and the target's rank
+  shift to line it up, so no hand-tuned `gap=`/`padding` is needed.
 - Both keys work on edges, groups (nearest group wins), the `graph` line and in CSS.
 - **Lanes:** when the sideways runs of different edges would land on the same line and
   overlap, they are spread into parallel lanes (9 px apart, ordered so they don't cross).

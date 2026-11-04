@@ -24,7 +24,7 @@ from .ir import Scene
 from .layout import layout
 from .parser import PdgSyntaxError, parse, parse_file
 from .render import write_apng, write_svg
-from .route import Router
+from .route import Router, straighten
 from .scene import SceneBuilder
 from .style import apply_styles
 from .text import use_target
@@ -59,11 +59,13 @@ def _layout_and_route(doc) -> Router:
     """Lay out, route; if a channel between two ranks is too narrow for its lanes,
     widen exactly that gap and lay out again."""
     router = None
-    for _ in range(MAX_PASSES):
+    for _ in range(MAX_PASSES * 2):
         layout(doc)
         router = Router(doc).route()
         if not router.needs:
-            break
+            if not straighten(doc, router):
+                break
+            continue
         for (gid, rank), need in router.needs.items():
             g = doc.root if gid == doc.root.id else doc.items[gid]
             extra = getattr(g, "extra_gap", {})

@@ -512,3 +512,65 @@ class Router:
                 k = (x1 - x0) / 2
                 segs.append(("C", x0 + k, y0, x1 - k, y1, x1, y1))
         return segs
+
+
+STRAIGHT_TOL = 24.0  # a fan=spread branch this close to level is meant to run straight
+
+
+def straighten(doc: Document, router: "Router") -> bool:
+    """`fan=spread`: make the branch that is already almost level with its target exactly
+    straight, one per source node. Two such sources in one column/row group get the gap
+    between them adjusted so both line up; the target's rank in the enclosing layered
+    group then moves sideways by what is left. Stored on the groups (`line_extra`,
+    `rank_shift`) for the next layout pass. Returns True if anything changed."""
+    best: dict[str, tuple[float, Edge, int]] = {}
+    for e in doc.edges:
+        if e.style.get("fan", "").strip() != "spread":
+            continue
+        pts, axis = router.geometry(e)
+        if axis not in ("v", "h"):
+            continue
+        i = 0 if axis == "v" else 1
+        d = pts[-1][i] - pts[0][i]
+        if abs(d) < STRAIGHT_TOL and (e.src not in best or abs(d) < abs(best[e.src][0])):
+            best[e.src] = (d, e, i)
+    if not best:
+        return False
+    items = sorted(best.values(), key=lambda t: doc.items[t[1].src].ay + doc.items[t[1].src].ax)
+    changed = False
+    ref_d = items[0][0]
+    by_group: dict[str, list] = {}
+    for d, e, i in items:
+        by_group.setdefault(doc.items[e.src].parent.id, []).append((d, e, i))
+    for lst in by_group.values():
+        g = doc.items[lst[0][1].src].parent
+        kids = g.children
+        line = g.attrs.get("layout") == ("column" if lst[0][2] == 1 else "row")
+        ref_d = lst[0][0]
+        for d, e, _ in lst[1:]:
+            if not line:
+                break
+            k = kids.index(doc.items[e.src])
+            if k == 0 or abs(d - ref_d) < 0.05:
+                continue
+            extra = getattr(g, "line_extra", {})
+            extra[k - 1] = extra.get(k - 1, 0.0) + (d - ref_d)
+            g.line_extra = extra
+            changed = True
+        if abs(ref_d) < 0.05:
+            continue
+        e = lst[0][1]
+        a, b = doc.items[e.src], doc.items[e.dst]
+        top = lca(a, b, doc.root)
+        lay = getattr(top, "layout_obj", None)
+        ranks = getattr(lay, "rank_index", None)
+        cur = b
+        while cur is not None and cur.parent is not top:
+            cur = cur.parent
+        if cur is None or not ranks or cur.id not in ranks:
+            continue
+        shift = getattr(top, "rank_shift", {})
+        shift[ranks[cur.id]] = shift.get(ranks[cur.id], 0.0) - ref_d
+        top.rank_shift = shift
+        changed = True
+    return changed

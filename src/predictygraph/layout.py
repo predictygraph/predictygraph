@@ -133,6 +133,7 @@ class LineLayout(Layout):
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
             step = max(gap, need.get(idx, 0.0))
+            step = max(4.0, step + getattr(self.g, "line_extra", {}).get(idx, 0.0))  # straighten()
             if horizontal:
                 k.x, k.y = pos, off
                 pos += k.w + step
@@ -409,6 +410,10 @@ class LayeredLayout(Layout):
                     pos[u] += maxw - w
         if balance == "median":
             pos = self._median_pull(order, pos, up, down, csz, node_gap, vgap)
+        for ri, layer in enumerate(order):  # straighten(): whole ranks nudged sideways
+            d = getattr(g, "rank_shift", {}).get(ri, 0.0)
+            for u in layer:
+                pos[u] += d
 
         # 6. main-axis coordinates (router may ask for wider gaps: g.extra_gap[rank])
         rank_thick = [max((msz(u) for u in layer), default=0) for layer in order]

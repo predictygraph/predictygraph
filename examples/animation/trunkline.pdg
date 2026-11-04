@@ -1,11 +1,11 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
 graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=170 balance=center
 dc "Data center" sub="GPU racks"
-group fabric "Spine fabric" .rail layout=column gap=63.2 {
+group fabric "Spine fabric" .rail layout=column gap=60 {
   spa "Spine A" sub="400G"
   spb "Spine B" sub="400G"
 }
-group svc .list padding="35 14 14 14" layout=column align=start {
+group svc .list layout=column align=start {
   obj "Object store" sub="S3 · 4 PB"
   train "Training cluster" sub="512 × H100"
   infer "Inference" sub="vLLM pool"
