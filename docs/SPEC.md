@@ -290,6 +290,12 @@ complete diagram, so static renderers (rsvg, cairosvg, WeasyPrint, PDF) stay cor
 - `flow=both` — two interleaved streams, one each way
 - `flow=auto` — follow the arrowheads (`->` forward, `<-` reverse, `<->` both)
 - `flow-speed=1.2s` — time for one dash period (default 1.2s; `ms` also accepted)
+- `flow=draw` — the edge traces itself in from the source, holds, and redraws; `flow-speed`
+  is the full cycle (default 3s). The t=0 frame shows the whole edge.
+- `flow-dot=ring` — hollow dots (background-filled rings) instead of solid dots
+
+`grid=40` on the `graph` line (or `graph { grid: 40; grid-color: #223; }`) draws a faint
+background grid with that pitch. It is decoration only and never affects layout.
 
 Without an explicit dash a flow draws round dots over a faint guide line; with a dashed
 body (`..>`, `stroke-dasharray=`) that dash pattern is what moves.

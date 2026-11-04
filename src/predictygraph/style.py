@@ -136,7 +136,7 @@ class StyleSheet:
 BOX_KEYS = ("fill", "stroke", "color", "font-size", "stroke-width", "border-radius", "font-weight",
             "stroke-dasharray", "padding", "border", "border-speed", "accent-bar", "accent-side", "title-fill")
 EDGE_KEYS = ("arrow", "head", "head-start", "head-size", "route", "radius", "stub", "flow", "flow-speed",
-             "diagonal", "diagonal-angle")
+             "flow-dot", "diagonal", "diagonal-angle")
 INHERITED_EDGE_KEYS = tuple(k for k in EDGE_KEYS if k not in ("flow", "head-start"))
 TEXT_KEYS = ("font-family", "font-size", "color", "font-weight", "font-style", "text-align")
 

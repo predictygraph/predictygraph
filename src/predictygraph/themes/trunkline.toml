@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Night-shift network map: ink canvas, thin graphite tracks, square corners,
+# mint and sky routes, coral for faults. Pairs with grid=, flow-dot: ring and flow=draw.
+schema = 1
+name = "trunkline"
+dark = true
+
+css = """
+graph { font-family: "IBM Plex Sans", "Inter", Arial, "Liberation Sans", sans-serif; grid-color: #1a2630; }
+node  { stroke-width: 2; font-weight: 600; }
+group { border-radius: 0; stroke: var(--border); stroke-width: 1; color: var(--muted); }
+edge  { stroke-width: 2; flow-dot: ring; }
+edge.primary, node.primary { stroke: var(--green); }
+edge.backup, node.backup { stroke: var(--blue); }
+edge.fault, node.fault { stroke: var(--red); color: var(--red); }
+node.idle { color: var(--muted); stroke: var(--border); }
+"""
+
+[palette]
+bg = "#0e1418"
+bg-alt = "#131c22"
+surface = "#0e1418"
+fg = "#e8eef0"
+muted = "#7d8b93"
+border = "#2a3842"
+red = "#ff7a59"
+orange = "#ff9f43"
+yellow = "#e8c547"
+green = "#4fd1a5"
+cyan = "#56c8e0"
+blue = "#6aa8ff"
+purple = "#b28dff"
+
+[roles]
+accent = "green"
+edge = "#26333c"
+
+[shape]
+radius = 0

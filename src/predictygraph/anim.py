@@ -16,7 +16,7 @@ import re
 
 from .safe import NUM, numbers
 
-FLOW_MODES = ("forward", "reverse", "both", "auto")
+FLOW_MODES = ("forward", "reverse", "both", "auto", "draw")
 BORDER_MODES = ("march", "pulse", "glow")
 
 
@@ -65,6 +65,12 @@ def flow_tracks(dash: str, dur: float, reverse: bool) -> list[Track]:
     L = dash_len(dash) or 10.0
     # offset L -> 0 moves the dash pattern towards the path's end
     return [Track("stroke-dashoffset", [0.0, L] if reverse else [L, 0.0], dur)]
+
+
+def draw_tracks(length: float, dur: float) -> list[Track]:
+    """Trace: hold drawn, erase from the start, redraw from the start (dasharray "L L").
+    Offsets 0 and -2L are the same picture, so the loop is seamless and t=0 is complete."""
+    return [Track("stroke-dashoffset", [0.0, 0.0, -length, -2 * length], dur)]
 
 
 def border_tracks(mode: str, sw: float, dash: str | None, dur: float) -> list[Track]:

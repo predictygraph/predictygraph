@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 
-from .anim import BORDER_MODES, Track, border_tracks, dash_len, flow_tracks, seconds
+from .anim import BORDER_MODES, Track, border_tracks, dash_len, draw_tracks, flow_tracks, seconds
 from .ir import Elem, Scene
 from .layout import SUB_GAP
 from .model import Document, Edge, Group, Node
@@ -75,6 +75,10 @@ def accent_segs(x: float, y: float, w: float, h: float, bw: float, r: float, sid
     return [place(s) for s in segs]
 
 
+def poly_len(pts) -> float:
+    return sum(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** .5 for (x0, y0), (x1, y1) in zip(pts, pts[1:]))
+
+
 class SceneBuilder:
     def __init__(self, doc: Document, router: Router):
         self.doc, self.router = doc, router
@@ -93,6 +97,9 @@ class SceneBuilder:
         nodes_layer = Elem("group", cls="pdg-nodes",
                            children=[self.node(c) for c in self.doc.walk() if isinstance(c, Node)])
         layers = [groups_layer, edges_layer, nodes_layer]
+        grid = self.grid(root)
+        if grid:
+            layers.insert(0, grid)
         if self.title_layer.children:
             layers.append(self.title_layer)
         w, h = root.w, root.h
@@ -443,7 +450,15 @@ class SceneBuilder:
             cls += f" pdg-flow pdg-flow-{flow}"
         out = Elem("group", id=e.id, cls=cls)
         base = {"fill": "none", "stroke": color, "stroke-linejoin": "round"}
-        if not flowing:
+        if flow == "draw":
+            cls += " pdg-draw"
+            out.cls = cls
+            L = poly_len(self.edge_polys[e.id]) + 2
+            out.children.append(Elem("path", cls="pdg-line", geom={"segs": segs},
+                                     paint=dict(base, **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round",
+                                                         "stroke-dasharray": f"{L:.1f} {L:.1f}"}),
+                                     tracks=draw_tracks(L, seconds(st.get("flow-speed"), 3.0))))
+        elif not flowing:
             p = dict(base, **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round"})
             if dash:
                 p["stroke-dasharray"] = dash
@@ -457,6 +472,9 @@ class SceneBuilder:
                                          paint=dict(base, **{"stroke-width": max(0.75, width * 0.5),
                                                              "stroke-opacity": 0.3})))
             dirs = ["forward", "reverse"] if flow == "both" else [flow]
+            ring = not dash and st.get("flow-dot", "dot").strip() == "ring"
+            if ring:
+                fwidth, fdash = max(fwidth, 8.0), f"0.1 {max(24.0, width * 10):g}"
             for k, fd in enumerate(dirs):
                 tracks = flow_tracks(fdash, dur, fd == "reverse")
                 if flow == "both" and k == 1:
@@ -465,6 +483,12 @@ class SceneBuilder:
                                          paint=dict(base, **{"stroke-width": fwidth, "stroke-dasharray": fdash,
                                                              "stroke-linecap": "round"}),
                                          tracks=tracks))
+                if ring:  # hollow dot: same moving pattern, background colour, narrower
+                    out.children.append(Elem("path", cls=f"pdg-line pdg-flow-ring", geom={"segs": segs},
+                                             paint=dict(base, **{"stroke": self.doc.root.style.get("background", "#ffffff"),
+                                                                 "stroke-width": fwidth - 4, "stroke-dasharray": fdash,
+                                                                 "stroke-linecap": "round"}),
+                                             tracks=tracks))
         for kind, tip, dvec in heads:
             out.children.append(self.head(kind, tip, dvec, hl, color, width,
                                           self.doc.root.style.get("background", "#ffffff")))
@@ -475,6 +499,20 @@ class SceneBuilder:
             box = lab[0].geom if e.label else None
             out.children += self.step_badge(e, self.edge_polys[e.id], box)
         return out
+
+    def grid(self, root):
+        """`grid=N` on the graph: faint N px background grid (decoration only)."""
+        n = px(root.attrs.get("grid") or root.style.get("grid"), 0)
+        if n < 4:
+            return None
+        segs = []
+        for i in range(1, int(root.w // n) + 1):
+            segs += [("M", i * n, 0), ("L", i * n, root.h)]
+        for j in range(1, int(root.h // n) + 1):
+            segs += [("M", 0, j * n), ("L", root.w, j * n)]
+        col = root.style.get("grid-color") or root.style.get("--border") or "#888888"
+        return Elem("group", cls="pdg-grid", children=[Elem("path", geom={"segs": segs},
+                    paint={"fill": "none", "stroke": col, "stroke-width": 1, "stroke-opacity": 0.35})])
 
     def step_badge(self, e, poly, label_box=None) -> list[Elem]:
         """Numbered circle for an edge. Next to the label when there is one; on the line a
