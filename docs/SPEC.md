@@ -296,6 +296,7 @@ complete diagram, so static renderers (rsvg, cairosvg, WeasyPrint, PDF) stay cor
 
 `grid=40` on the `graph` line (or `graph { grid: 40; grid-color: #223; }`) draws a faint
 background grid with that pitch. It is decoration only and never affects layout.
+`corner-marks: 6px` on a node draws short L ticks just outside its four corners (stroke colour).
 
 Without an explicit dash a flow draws round dots over a faint guide line; with a dashed
 body (`..>`, `stroke-dasharray=`) that dash pattern is what moves.

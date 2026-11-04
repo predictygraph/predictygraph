@@ -1,5 +1,5 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
-graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40
+graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=180
 dc "Data center" sub="GPU racks" shape=circle
 group edge_pop "Edge POP" {
   core "Core switch"

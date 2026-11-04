@@ -10,7 +10,7 @@ dark = true
 
 css = """
 graph { font-family: "IBM Plex Sans", "Inter", Arial, "Liberation Sans", sans-serif; grid-color: #1a2630; }
-node  { stroke-width: 2; font-weight: 600; }
+node  { stroke-width: 2; font-weight: 600; corner-marks: 6px; }
 group { border-radius: 0; stroke: var(--border); stroke-width: 1; color: var(--muted); }
 edge  { stroke-width: 2; flow-dot: ring; }
 edge.primary, node.primary { stroke: var(--green); }

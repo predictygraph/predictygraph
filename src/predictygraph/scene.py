@@ -261,7 +261,7 @@ class SceneBuilder:
         st = n.style
         shape = n.attrs.get("shape", "box")
         out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.shape(n, shape, st))
-        out.children += self.accent(n, st)
+        out.children += self.accent(n, st) + self.corner_marks(n, st)
         fs = font_size(st, 14)
         if n.image:
             img = n.image
@@ -499,6 +499,20 @@ class SceneBuilder:
             box = lab[0].geom if e.label else None
             out.children += self.step_badge(e, self.edge_polys[e.id], box)
         return out
+
+    def corner_marks(self, n, st) -> list[Elem]:
+        """`corner-marks: 8px`: short L ticks just outside each corner of the node box."""
+        k = px(st.get("corner-marks"), 0)
+        if k <= 0:
+            return []
+        o = 4
+        x0, y0, x1, y1 = n.ax - o, n.ay - o, n.ax + n.w + o, n.ay + n.h + o
+        segs = []
+        for x, y, dx, dy in ((x0, y0, 1, 1), (x1, y0, -1, 1), (x0, y1, 1, -1), (x1, y1, -1, -1)):
+            segs += [("M", x + dx * k, y), ("L", x, y), ("L", x, y + dy * k)]
+        col = st.get("stroke") or st.get("--border") or "#888888"
+        return [Elem("path", cls="pdg-corners", geom={"segs": segs},
+                     paint={"fill": "none", "stroke": col, "stroke-width": 1})]
 
     def grid(self, root):
         """`grid=N` on the graph: faint N px background grid (decoration only)."""
