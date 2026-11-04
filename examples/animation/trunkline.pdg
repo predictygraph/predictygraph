@@ -1,9 +1,6 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
 graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=120 balance=center
 dc "Data center" sub="GPU racks"
-group edge_pop "Edge POP" {
-  core "Core switch" .box
-}
 group fabric "Spine fabric" .rail layout=column gap=60 {
   spa "Spine A" sub="400G"
   spb "Spine B" sub="400G"
@@ -16,10 +13,9 @@ group svc "Services" .list layout=column align=start {
   log "Logging" sub="Loki"
   peer "Peering" sub="IX · 2 × 100G"
 }
-dc -> core "primary" .primary flow=forward flow-speed=.9s
-dc -> core "backup" .backup flow=forward flow-speed=1.4s
-core -> spa .primary flow=draw flow-speed=2.5s
-core -> spb
+dc -> spa "primary" .primary flow=forward flow-speed=.9s
+dc -> spb "backup" .backup flow=forward flow-speed=1.4s
+spa -> spb .primary flow=forward flow-speed=1.2s
 spa -> obj, infer
 spa -> train .primary flow=draw flow-speed=2.5s
 spb -> feat, log, peer
