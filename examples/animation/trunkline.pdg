@@ -1,11 +1,11 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
-graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=120 balance=center
+graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=170 balance=center
 dc "Data center" sub="GPU racks"
 group fabric "Spine fabric" .rail layout=column gap=60 {
   spa "Spine A" sub="400G"
   spb "Spine B" sub="400G"
 }
-group svc "Services" .list layout=column align=start {
+group svc .list layout=column align=start {
   obj "Object store" sub="S3 · 4 PB"
   train "Training cluster" sub="512 × H100"
   infer "Inference" sub="vLLM pool"
@@ -16,6 +16,6 @@ group svc "Services" .list layout=column align=start {
 dc -> spa "primary" .primary flow=forward flow-speed=.9s
 dc -> spb "backup" .backup flow=forward flow-speed=1.4s
 spa -> spb .primary flow=forward flow-speed=1.2s
-spa -> obj, infer
-spa -> train .primary flow=draw flow-speed=2.5s
-spb -> feat, log, peer
+spa -> obj, infer stub=40
+spa -> train .primary stub=40 flow=draw flow-speed=2.5s
+spb -> feat, log, peer stub=40
