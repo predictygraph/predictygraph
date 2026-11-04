@@ -1,11 +1,13 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
-graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=120
+graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=120 balance=center
 dc "Data center" sub="GPU racks"
 group edge_pop "Edge POP" {
   core "Core switch" .box
 }
-spa "Spine A" sub="400G"
-spb "Spine B" sub="400G"
+group fabric "Spine fabric" .rail layout=column gap=60 {
+  spa "Spine A" sub="400G"
+  spb "Spine B" sub="400G"
+}
 group svc "Services" .list layout=column align=start {
   obj "Object store" sub="S3 · 4 PB"
   train "Training cluster" sub="512 × H100"

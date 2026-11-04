@@ -13,6 +13,7 @@ Also owns the decisions that need the routed geometry of everything at once:
 from __future__ import annotations
 
 import math
+from types import SimpleNamespace
 
 from .anim import BORDER_MODES, Track, border_tracks, dash_len, draw_tracks, flow_tracks, seconds
 from .ir import Elem, Scene
@@ -302,18 +303,25 @@ class SceneBuilder:
     def group(self, g: Group) -> Elem:
         st = g.style
         out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
-                   children=self.shape(g, g.attrs.get("shape", "box"), st))
+                   children=self.shape(self._frame(g, st), g.attrs.get("shape", "box"), st))
         out.children += self.accent(g, st)
         if g.label and title_position(st) == "left":
             out.children.append(self._side_title(g, st))
         elif g.label:
-            if has_title_band(st):
+            if has_title_band(st) and title_position(st) != "above":
                 out.children.append(self._title_band(g, st))
             self._top_title(g, st, out)
         for c in g.children:
             if isinstance(c, Group):
                 out.children.append(self.group(c))
         return out
+
+    @staticmethod
+    def _frame(g: Group, st: dict):
+        """`label-position: above`: the outline starts below the title strip."""
+        if not (g.label and title_position(st) == "above"):
+            return g
+        return SimpleNamespace(ax=g.ax, ay=g.ay + g.label_h, w=g.w, h=g.h - g.label_h)
 
     def _title_band(self, g: Group, st: dict) -> Elem:
         """`title-fill`: a band behind the title, rounded like the group's top corners."""
@@ -338,8 +346,9 @@ class SceneBuilder:
         pt, pr, pb, pl = box4(st.get("padding"), 14)
         tw, th, _ = text_block(g.label, st, 12)
         bottom = title_position(st) == "bottom"
-        top = g.ay + g.h - pb - g.label_h + 6 if bottom else g.ay + pt
-        x0 = self._title_x(g, st, tw, pl, pr, top, th)
+        above = title_position(st) == "above"
+        top = g.ay + g.h - pb - g.label_h + 6 if bottom else g.ay + (0 if above else pt)
+        x0 = g.ax if above else self._title_x(g, st, tw, pl, pr, top, th)
         box = (x0 - TITLE_PAD, top - 2, x0 + tw + TITLE_PAD, top + th + 2)
         texts = self.text(g.label.split("\n"), x0, top, fs, st, "start")
         if g.attrs.get("sub") and not bottom:

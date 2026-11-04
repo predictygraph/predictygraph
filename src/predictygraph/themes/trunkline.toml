@@ -13,6 +13,7 @@ graph { font-family: "IBM Plex Sans", "Inter", Arial, "Liberation Sans", sans-se
 node  { stroke: none; fill: none; font-weight: 600; }
 node.box { stroke: var(--border); stroke-width: 2; fill: var(--bg-alt); corner-marks: 6px; }
 group.list node { text-align: left; }
+group.rail { label-position: above; stroke: var(--border); stroke-width: 2; fill: var(--bg-alt); }
 group { border-radius: 0; stroke: var(--border); stroke-width: 1; color: var(--muted); }
 edge  { stroke-width: 2; flow-dot: ring; }
 edge.primary, node.primary { stroke: var(--green); }

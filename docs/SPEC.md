@@ -238,7 +238,7 @@ Supported properties:
   `padding`, `min-width`, `min-height`, `opacity`, `shadow` (`none|soft`)
 - Text: `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`
 - Edge: `stroke`, `stroke-width`, `stroke-dasharray`, `arrow`, `head`, `route`
-- Group: everything a node has plus `label-position: top|bottom`
+- Group: everything a node has plus `label-position: top|bottom|above` (`above`: the title sits outside, over the outline)
 - Custom properties `--name: value` and `var(--name)` are supported, so slidr themes
   can share palettes.
 
