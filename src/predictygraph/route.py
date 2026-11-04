@@ -86,6 +86,7 @@ class Diagonal:
     mode: str = "auto"
     max: float = 40.0
     angle: float = 45.0
+    early: bool = False  # fan=spread: slant right after the start stub, so siblings turn together
 
     @classmethod
     def from_style(cls, st: dict, route: str) -> "Diagonal":
@@ -93,7 +94,8 @@ class Diagonal:
         fixed = {"none": 0.0, "always": 1e9}
         return cls("legacy" if dg == "legacy" else "auto",
                    fixed[dg] if dg in fixed else px(dg, 40.0),
-                   min(80.0, max(10.0, px(st.get("diagonal-angle"), 45.0))))
+                   min(80.0, max(10.0, px(st.get("diagonal-angle"), 45.0))),
+                   str(st.get("fan", "")).strip() == "spread")
 
 
 def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
@@ -122,12 +124,16 @@ def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
     if mid is not None:  # a lane/channel level wins over the default stub length
         stub = max(2.0, min(stub, abs(mid - a0), abs(a1 - mid)))
     room = abs(main) - 2 * stub
+    if diag.early:  # fan=spread: the slant may use the run up to a short final stub
+        room = abs(main) - stub - min(stub, 8.0)
     if diag.max >= 1e9 and room > 1:  # diagonal=always: steepen until the slant fits
         angle = max(angle, math.degrees(math.atan2(abs(cross), room)))
     dlen = abs(cross) / math.tan(math.radians(angle))  # main-axis length the slant uses
     centre = mid if mid is not None else (a0 + a1) / 2
     if abs(cross) <= diag.max and dlen <= room:
-        if sgn > 0:
+        if diag.early:
+            s = a0 + sgn * stub
+        elif sgn > 0:
             s = max(a0 + stub, min(centre - dlen / 2, a1 - (stub + dlen)))
         else:
             s = min(a0 - stub, max(centre + dlen / 2, a1 + (stub + dlen)))
@@ -209,14 +215,16 @@ class Router:
                 if axis not in ("v", "h"):
                     continue
                 a, b = self.doc.items[e.src], self.doc.items[e.dst]
-                if flow_dir(lca(a, b, self.doc.root)) == "auto" or e.style.get("route", "curve") in ("straight", "ortho"):
-                    continue  # ortho fan-in/out merges into a bus instead
+                spread = e.style.get("fan", "").strip() == "spread"
+                if flow_dir(lca(a, b, self.doc.root)) == "auto" or \
+                        (e.style.get("route", "curve") in ("straight", "ortho") and not spread):
+                    continue  # ortho fan-in/out merges into a bus instead (unless fan=spread)
                 i = 0 if axis == "v" else 1
                 for end, node, here, there in ((0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
                                                (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0])):
                     side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else \
                            ("right" if there[0] > here[0] else "left")
-                    sides.setdefault((node.id, side), []).append((there[i], e.id, end))
+                    sides.setdefault((node.id, side), []).append((there[i], e.id, end, spread))
         finally:
             self.offset = saved
         for (nid, side), lst in sides.items():
@@ -226,15 +234,17 @@ class Router:
             span = n.w if side in ("top", "bottom") else n.h
             if n.attrs.get("shape", "box") in ROUND_SHAPES and not isinstance(n, Group):
                 span *= 0.6  # stay on the part of the outline that faces the side
-            step = min(18.0, (span - 12) / (len(lst) - 1)) if span > 12 else 0.0
+            cap = span if all(x[3] for x in lst) else 18.0  # fan=spread uses the whole side
+            step = min(cap, (span - 12) / (len(lst) - 1)) if span > 12 else 0.0
             lst.sort()
-            for k, (_, eid, end) in enumerate(lst):
+            for k, (_, eid, end, _sp) in enumerate(lst):
                 self.port_shift[(eid, end)] = (k - (len(lst) - 1) / 2) * step
 
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
         level, so they merge into a single bus line (class-diagram style)."""
-        geo = {e.id: self.geometry(e) for e in self.doc.edges if e.style.get("route", "curve") == "ortho"}
+        geo = {e.id: self.geometry(e) for e in self.doc.edges
+               if e.style.get("route", "curve") == "ortho" and e.style.get("fan", "").strip() != "spread"}
         for key in ("dst", "src"):
             buckets: dict[str, list] = {}
             for e in self.doc.edges:

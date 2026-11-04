@@ -122,6 +122,9 @@ Per-edge attributes override arrow defaults:
   Default: `40` for `route=bend`, `none` for `route=ortho`. `always` steepens the angle
   as needed so every jog is diagonal.
 - `diagonal-angle=45` — slant angle in degrees from the flow axis (10–80; 45 = octilinear)
+- `fan=spread` — edges leaving (or entering) one side of a node use separate ports spread
+  along that side, turn right after their stub and slant at `diagonal-angle`, so a
+  fan-out reads as parallel branches instead of merging into one ortho bus.
 - Both keys work on edges, groups (nearest group wins), the `graph` line and in CSS.
 - **Lanes:** when the sideways runs of different edges would land on the same line and
   overlap, they are spread into parallel lanes (9 px apart, ordered so they don't cross).

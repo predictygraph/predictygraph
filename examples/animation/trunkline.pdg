@@ -16,6 +16,6 @@ group svc .list layout=column align=start {
 dc -> spa "primary" .primary flow=forward flow-speed=.9s
 dc -> spb "backup" .backup flow=forward flow-speed=1.4s
 spa -> spb .primary flow=forward flow-speed=1.2s
-spa -> obj, infer stub=40
-spa -> train .primary stub=40 flow=draw flow-speed=2.5s
-spb -> feat, log, peer stub=40
+spa -> obj, infer fan=spread stub=24
+spa -> train .primary fan=spread stub=24 flow=draw flow-speed=2.5s
+spb -> feat, log, peer fan=spread stub=24
