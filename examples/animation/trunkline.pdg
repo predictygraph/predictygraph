@@ -1,16 +1,23 @@
 # Dual-path backbone on the trunkline theme: draw-in route, ring flows, background grid.
-graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=180
-dc "Data center" sub="GPU racks" shape=circle
+graph dir=LR theme=trunkline route=ortho radius=0 diagonal=always grid=40 rank-gap=120
+dc "Data center" sub="GPU racks"
 group edge_pop "Edge POP" {
-  core "Core switch"
+  core "Core switch" .box
 }
-group svc "Services" layout=column {
-  obj "Object store" .idle
-  train "Training cluster"
-  infer "Inference" .idle
-  peer "Peering" .idle
+spa "Spine A" sub="400G"
+spb "Spine B" sub="400G"
+group svc "Services" .list layout=column align=start {
+  obj "Object store" sub="S3 · 4 PB"
+  train "Training cluster" sub="512 × H100"
+  infer "Inference" sub="vLLM pool"
+  feat "Feature store" sub="Redis"
+  log "Logging" sub="Loki"
+  peer "Peering" sub="IX · 2 × 100G"
 }
 dc -> core "primary" .primary flow=forward flow-speed=.9s
 dc -> core "backup" .backup flow=forward flow-speed=1.4s
-core -> obj, infer, peer
-core -> train .primary flow=draw flow-speed=2.5s
+core -> spa .primary flow=draw flow-speed=2.5s
+core -> spb
+spa -> obj, infer
+spa -> train .primary flow=draw flow-speed=2.5s
+spb -> feat, log, peer

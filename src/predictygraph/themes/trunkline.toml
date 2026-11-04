@@ -10,13 +10,16 @@ dark = true
 
 css = """
 graph { font-family: "IBM Plex Sans", "Inter", Arial, "Liberation Sans", sans-serif; grid-color: #1a2630; }
-node  { stroke-width: 2; font-weight: 600; corner-marks: 6px; }
+node  { stroke: none; fill: none; font-weight: 600; }
+node.box { stroke: var(--border); stroke-width: 2; fill: var(--bg-alt); corner-marks: 6px; }
+group.list node { text-align: left; }
 group { border-radius: 0; stroke: var(--border); stroke-width: 1; color: var(--muted); }
 edge  { stroke-width: 2; flow-dot: ring; }
 edge.primary, node.primary { stroke: var(--green); }
 edge.backup, node.backup { stroke: var(--blue); }
 edge.fault, node.fault { stroke: var(--red); color: var(--red); }
-node.idle { color: var(--muted); stroke: var(--border); }
+node.idle { color: var(--muted); }
+sub { color: var(--muted); font-size: 0.85em; font-weight: 400; }
 """
 
 [palette]
