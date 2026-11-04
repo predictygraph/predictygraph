@@ -475,6 +475,12 @@ class SceneBuilder:
             ring = not dash and st.get("flow-dot", "dot").strip() == "ring"
             if ring:
                 fwidth, fdash = max(fwidth, 8.0), f"0.1 {max(24.0, width * 10):g}"
+                # start rings one ring-width out so the first one clears the node outline
+                rp = list(pts)
+                for i, j in ((0, 1), (-1, -2)):
+                    dv = end_dir(rp[i], rp[j])
+                    rp[i] = (rp[i][0] - dv[0] * fwidth, rp[i][1] - dv[1] * fwidth)
+                segs = R.path_segs(rp, axis, route, radius, stub, level, diag)
             for k, fd in enumerate(dirs):
                 tracks = flow_tracks(fdash, dur, fd == "reverse")
                 if flow == "both" and k == 1:
