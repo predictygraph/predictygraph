@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Scene IR + routing behaviour: lanes, rank clearance, title clearance, writers."""
+
 import re
 
 from predictygraph import build_scene, parse, render, write_svg
@@ -21,18 +22,17 @@ def _edge_path(svg, eid):
 def _runs(d):
     """Horizontal runs (y, x0, x1) of a path d string."""
     pts = [(float(x), float(y)) for x, y in re.findall(r"(-?[\d.]+) (-?[\d.]+)", d)]
-    return [(p[1], min(p[0], q[0]), max(p[0], q[0])) for p, q in zip(pts, pts[1:])
-            if abs(p[1] - q[1]) < 0.01 and abs(p[0] - q[0]) > 1]
+    return [(p[1], min(p[0], q[0]), max(p[0], q[0])) for p, q in zip(pts, pts[1:]) if abs(p[1] - q[1]) < 0.01 and abs(p[0] - q[0]) > 1]
 
 
-LANES = '''graph dir=TB route=bend diagonal=none
+LANES = """graph dir=TB route=bend diagonal=none
 group top layout=row gap=60 { a; b; m; c }
 t
 a -> t
 b ..> t
 c -> t
 m -> t constraint=false
-'''
+"""
 
 
 def test_distinct_traces_get_separate_lanes():
@@ -64,11 +64,12 @@ def test_runs_keep_clear_of_boxes_and_gap_widens():
 
 def test_group_title_is_not_crossed():
     from predictygraph.text import measure
-    src = '''graph dir=TB route=bend
+
+    src = """graph dir=TB route=bend
 a
 group g "A LONG GROUP TITLE" layout=row { b; c }
 a -> b
-'''
+"""
     sc = _scene(src)
     svg = write_svg(sc)
     title = next(e for e in sc.walk() if e.kind == "text" and e.geom["text"] == "A LONG GROUP TITLE")

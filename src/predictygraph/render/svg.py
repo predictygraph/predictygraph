@@ -7,14 +7,14 @@
 t=None  animated SVG: static values are the first keyframe, SMIL <animate> drives tracks.
 t=float frozen frame at that time (used for --static/--at and APNG frames).
 """
+
 from __future__ import annotations
 
 from xml.sax.saxutils import escape, quoteattr
 
 from ..ir import Elem, Scene
 
-SHADOW = ('<filter id="pdg-shadow" x="-20%" y="-20%" width="140%" height="150%">'
-          '<feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.18"/></filter>')
+SHADOW = '<filter id="pdg-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.18"/></filter>'
 
 
 def num(v) -> str:
@@ -51,8 +51,10 @@ class SvgWriter:
     def smil(self, el: Elem) -> str:
         if self.t is not None:
             return ""
-        return "".join(f'<animate attributeName="{tr.attr}" values="{";".join(num(float(v)) for v in tr.values)}" '
-                       f'dur="{num(float(tr.dur))}s" repeatCount="indefinite"/>' for tr in el.tracks)
+        return "".join(
+            f'<animate attributeName="{tr.attr}" values="{";".join(num(float(v)) for v in tr.values)}" dur="{num(float(tr.dur))}s" repeatCount="indefinite"/>'
+            for tr in el.tracks
+        )
 
     @staticmethod
     def attrs_str(a: dict) -> str:
@@ -91,8 +93,15 @@ class SvgWriter:
         elif el.kind == "path":
             a = {"d": path_d(g["segs"])}
         elif el.kind == "image":
-            a = {"x": g["x"], "y": g["y"], "width": g["w"], "height": g["h"], "href": g["href"],
-                 "xlink:href": g["href"], "preserveAspectRatio": "xMidYMid meet"}
+            a = {
+                "x": g["x"],
+                "y": g["y"],
+                "width": g["w"],
+                "height": g["h"],
+                "href": g["href"],
+                "xlink:href": g["href"],
+                "preserveAspectRatio": "xMidYMid meet",
+            }
         else:
             return ""
         a = {k: num(float(v)) if isinstance(v, (int, float)) else v for k, v in a.items()}
@@ -109,9 +118,9 @@ class SvgWriter:
         defs = []
         if "shadow" in s.effects():
             defs.append(SHADOW)
-        head = [f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
-                f'width="{s.width:.0f}" height="{s.height:.0f}" viewBox="0 0 {num(s.width)} {num(s.height)}" '
-                f'class="predictygraph">']
+        head = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{s.width:.0f}" height="{s.height:.0f}" viewBox="0 0 {num(s.width)} {num(s.height)}" class="predictygraph">'
+        ]
         if defs:
             head.append("<defs>" + "".join(defs) + "</defs>")
         if s.background:

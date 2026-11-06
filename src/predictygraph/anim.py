@@ -9,6 +9,7 @@ attached to a Scene IR element. The first keyframe always equals the static valu
 writers that cannot animate (PDF, PNG, ODP) just use it. Writers that can animate
 (SVG via SMIL) emit the track; frame writers (APNG) sample it with ``Track.at(t)``.
 """
+
 from __future__ import annotations
 
 import math
@@ -57,7 +58,7 @@ class Track:
         f = ph - i
         return vs[i] + (vs[i + 1] - vs[i]) * f
 
-    def shifted(self, delta: float) -> "Track":
+    def shifted(self, delta: float) -> Track:
         return Track(self.attr, [v + delta for v in self.values], self.dur)
 
 
@@ -77,11 +78,9 @@ def border_tracks(mode: str, sw: float, dash: str | None, dur: float) -> list[Tr
     if mode == "march":
         return [Track("stroke-dashoffset", [dash_len(dash) or 10.0, 0.0], dur)]
     if mode == "pulse":
-        return [Track("stroke-opacity", [1.0, 0.35, 1.0], dur),
-                Track("stroke-width", [sw, sw * 2.2, sw], dur)]
+        return [Track("stroke-opacity", [1.0, 0.35, 1.0], dur), Track("stroke-width", [sw, sw * 2.2, sw], dur)]
     if mode == "glow":  # applied to a halo copy behind the shape
-        return [Track("stroke-width", [sw, sw + 10, sw + 10], dur),
-                Track("stroke-opacity", [0.7, 0.0, 0.0], dur)]
+        return [Track("stroke-width", [sw, sw + 10, sw + 10], dur), Track("stroke-opacity", [0.7, 0.0, 0.0], dur)]
     return []
 
 
@@ -89,9 +88,5 @@ def loop_length(durations: list[float], cap: float = 12.0) -> float:
     """Shortest time after which every track is back at its start (LCM on a 10 ms grid)."""
     if not durations:
         return 1.0
-    l = 1
-    for d in durations:
-        c = max(1, round(d * 100))
-        l = l * c // math.gcd(l, c)
-    lcm = l / 100
+    lcm = math.lcm(*(max(1, round(d * 100)) for d in durations)) / 100
     return lcm if lcm <= cap else min(max(durations), cap)

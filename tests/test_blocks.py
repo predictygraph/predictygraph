@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """`let` variables and `def`/`use` reusable blocks (SPEC 2.1)."""
+
 import pytest
 
 from predictygraph.parser import PdgSyntaxError, parse
@@ -43,17 +44,20 @@ def test_id_and_label_inside_block():
 
 
 def test_nested_blocks():
-    d = parse(SERVER + 'def rack {\n  use server s1\n}\nuse rack r1\n')
+    d = parse(SERVER + "def rack {\n  use server s1\n}\nuse rack r1\n")
     assert "r1-s1-gpu" in d.items
 
 
-@pytest.mark.parametrize("src, msg", [
-    ("a $nope\n", "unknown variable"),
-    ("use missing x\n", "unknown block"),
-    ("def b need {\n  a\n}\nuse b x\n", "missing need"),
-    ("def b {\n  use b y\n}\nuse b x\n", "uses itself"),
-    ("def b {\n  a\n", "unclosed def"),
-])
+@pytest.mark.parametrize(
+    "src, msg",
+    [
+        ("a $nope\n", "unknown variable"),
+        ("use missing x\n", "unknown block"),
+        ("def b need {\n  a\n}\nuse b x\n", "missing need"),
+        ("def b {\n  use b y\n}\nuse b x\n", "uses itself"),
+        ("def b {\n  a\n", "unclosed def"),
+    ],
+)
 def test_errors(src, msg):
     with pytest.raises(PdgSyntaxError, match=msg):
         parse(src)

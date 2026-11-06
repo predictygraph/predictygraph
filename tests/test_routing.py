@@ -4,6 +4,7 @@
 
 """Routing regressions: edges between the same nodes, and edges fanning out of a
 round node, must stay apart and must not cross."""
+
 from predictygraph import _style, parse
 from predictygraph.layout import layout
 from predictygraph.route import Router

@@ -2,10 +2,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
+
 from predictygraph import render
 from predictygraph.parser import PdgSyntaxError, parse
-
-import pytest
 
 
 def test_edge_chain_and_fanout():
@@ -14,8 +14,7 @@ def test_edge_chain_and_fanout():
     assert pairs == [("a", "c", "solid"), ("b", "c", "solid"), ("c", "d", "thick")]
 
 
-@pytest.mark.parametrize("tok,arrow", [("->", "end"), ("<-", "start"), ("<->", "both"),
-                                        ("--", "none"), ("<..>", "both"), ("==>", "end")])
+@pytest.mark.parametrize("tok,arrow", [("->", "end"), ("<-", "start"), ("<->", "both"), ("--", "none"), ("<..>", "both"), ("==>", "end")])
 def test_arrow_tokens(tok, arrow):
     assert parse(f"a {tok} b").edges[0].arrow == arrow
 
@@ -32,10 +31,9 @@ def test_errors_have_line_numbers():
 
 
 def test_render_mixed_layouts_and_css():
-    svg = render('graph dir=LR edge-width=3\ncss { node.x { fill: #ff0000; } }\n'
-                 'group a layout=layered dir=TB { p -> q }\n'
-                 'group b layout=radial { h; i; j }\n'
-                 'n .x\np -> h "lbl" width=5 head=diamond\n')
+    svg = render(
+        'graph dir=LR edge-width=3\ncss { node.x { fill: #ff0000; } }\ngroup a layout=layered dir=TB { p -> q }\ngroup b layout=radial { h; i; j }\nn .x\np -> h "lbl" width=5 head=diamond\n'
+    )
     assert 'fill="#ff0000"' in svg
     assert 'stroke-width="5"' in svg and 'stroke-width="3"' in svg
     assert "lbl" in svg
@@ -43,8 +41,10 @@ def test_render_mixed_layouts_and_css():
 
 def test_spine_is_centred_over_odd_fanout():
     import re
-    svg = render('graph dir=TB\nA "Christmas"\nB "Go shopping"\nC "Let me think" shape=diamond\n'
-                 'D "Laptop"\nE "iPhone"\nF "Car"\nA -> B -> C\nC -> D\nC -> E\nC -> F\n')
+
+    svg = render(
+        'graph dir=TB\nA "Christmas"\nB "Go shopping"\nC "Let me think" shape=diamond\nD "Laptop"\nE "iPhone"\nF "Car"\nA -> B -> C\nC -> D\nC -> E\nC -> F\n'
+    )
 
     def cx(nid):
         body = svg.split(f'<g id="{nid}"', 1)[1].split("</g>", 1)[0]
@@ -59,7 +59,7 @@ def test_spine_is_centred_over_odd_fanout():
 
 
 def test_animation_svg_and_frames():
-    src = 'graph dir=LR\na border=march\nb border=pulse\nc border=glow\na -> b flow=forward\nb <-> c flow=auto\n'
+    src = "graph dir=LR\na border=march\nb border=pulse\nc border=glow\na -> b flow=forward\nb <-> c flow=auto\n"
     svg = render(src)
     assert svg.count("<animate ") >= 5
     assert "pdg-flow-forward" in svg and "pdg-flow-reverse" in svg
@@ -71,6 +71,7 @@ def test_animation_svg_and_frames():
 
 def test_loop_length():
     from predictygraph.anim import loop_length
+
     assert loop_length([1.2, 0.8]) == 2.4
     assert loop_length([]) == 1.0
     assert loop_length([7, 11]) == 11  # LCM 77s > cap -> longest track

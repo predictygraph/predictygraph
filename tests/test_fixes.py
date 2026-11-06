@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Regression tests for labels, ER heads, empty-label circles and the label selector."""
+
 from predictygraph import build_scene, parse, render
 
 
@@ -21,7 +22,7 @@ def test_fanout_labels_do_not_overlap():
     boxes = [(g["x"], g["y"], g["w"], g["h"]) for g in (e.geom for e in sc.walk() if e.cls == "pdg-label-bg")]
     assert len(boxes) == 3
     for i, (x, y, w, h) in enumerate(boxes):
-        for (x2, y2, w2, h2) in boxes[i + 1:]:
+        for x2, y2, w2, h2 in boxes[i + 1 :]:
             assert x + w <= x2 or x2 + w2 <= x or y + h <= y2 or y2 + h2 <= y
 
 

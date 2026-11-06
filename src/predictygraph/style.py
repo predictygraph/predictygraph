@@ -3,18 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """CSS subset resolution with tinycss2 (no browser)."""
+
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 import tinycss2
 
-from .model import Document, Edge, Group, Item
+from .model import Document
 from .safe import MAX_VAR_LEN, number
 
 BUILTIN = (Path(__file__).parent / "default.css").read_text()
+
 
 @dataclass
 class Selector:
@@ -90,8 +92,7 @@ class StyleSheet:
         for rule in rules:
             if rule.type == "at-rule" and rule.lower_at_keyword == "target":
                 if rule.content is not None and self.target_matches(rule.prelude):
-                    self.add_rules(tinycss2.parse_rule_list(rule.content, skip_comments=True,
-                                                            skip_whitespace=True))
+                    self.add_rules(tinycss2.parse_rule_list(rule.content, skip_comments=True, skip_whitespace=True))
                 continue
             if rule.type != "qualified-rule":
                 continue
@@ -111,8 +112,7 @@ class StyleSheet:
                     self.rules.append((sel, decls, self._order))
 
     def compute(self, item, ancestors) -> dict[str, str]:
-        hits = [(sel.specificity, order, decls) for sel, decls, order in self.rules
-                if matches(sel, item, ancestors)]
+        hits = [(sel.specificity, order, decls) for sel, decls, order in self.rules if matches(sel, item, ancestors)]
         out: dict[str, str] = {}
         for _, _, decls in sorted(hits, key=lambda h: (h[0], h[1])):
             out.update(decls)
@@ -125,19 +125,48 @@ class StyleSheet:
         def sub(v, depth=0):
             if depth > 8 or "var(" not in v or len(v) > MAX_VAR_LEN:
                 return v[:MAX_VAR_LEN]
+
             def rep(m):
                 name, fb = m.group(1), m.group(2)
                 return local.get(name, fb.strip() if fb else "")
+
             return sub(var_re.sub(rep, v), depth + 1)
 
         return {k: sub(v) for k, v in style.items()}
 
 
-BOX_KEYS = ("fill", "stroke", "color", "font-size", "stroke-width", "border-radius", "font-weight",
-            "stroke-dasharray", "padding", "border", "border-speed", "accent-bar", "accent-side", "title-fill",
-            "corner-marks")
-EDGE_KEYS = ("arrow", "head", "head-start", "head-size", "route", "radius", "stub", "flow", "flow-speed",
-             "flow-dot", "diagonal", "diagonal-angle", "fan")
+BOX_KEYS = (
+    "fill",
+    "stroke",
+    "color",
+    "font-size",
+    "stroke-width",
+    "border-radius",
+    "font-weight",
+    "stroke-dasharray",
+    "padding",
+    "border",
+    "border-speed",
+    "accent-bar",
+    "accent-side",
+    "title-fill",
+    "corner-marks",
+)
+EDGE_KEYS = (
+    "arrow",
+    "head",
+    "head-start",
+    "head-size",
+    "route",
+    "radius",
+    "stub",
+    "flow",
+    "flow-speed",
+    "flow-dot",
+    "diagonal",
+    "diagonal-angle",
+    "fan",
+)
 INHERITED_EDGE_KEYS = tuple(k for k in EDGE_KEYS if k not in ("flow", "head-start"))
 TEXT_KEYS = ("font-family", "font-size", "color", "font-weight", "font-style", "text-align")
 
@@ -146,12 +175,13 @@ TEXT_KEYS = ("font-family", "font-size", "color", "font-weight", "font-style", "
 class _Part:
     """Pseudo item so `label`, `sub`, `step`, `caption`, `legend` selectors match a piece
     of text that belongs to an item (an edge label, a node subtitle, a step badge, ...)."""
+
     kind: str
     classes: list
     id: str = ""
 
 
-def part_style(sheet: "StyleSheet", kind: str, owner, anc: list, inherit: dict) -> dict[str, str]:
+def part_style(sheet: StyleSheet, kind: str, owner, anc: list, inherit: dict) -> dict[str, str]:
     """Style for a text part: inherits text keys from its owner, then CSS for `kind`.
     Subtitles drop the owner's weight: a bold title should not make the second line bold.
     `em`/`%` font sizes are relative to the owner's size."""
@@ -187,8 +217,7 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
     root.style = sheet.resolve_vars(sheet.compute(root, []))
     root.part_styles = {k: part_style(sheet, k, root, [], root.style) for k in ("caption", "legend")}
     for b in doc.brackets:
-        b.style = sheet.resolve_vars({"font-family": root.style.get("font-family", "sans-serif"),
-                                      **sheet.compute(b, [root])})
+        b.style = sheet.resolve_vars({"font-family": root.style.get("font-family", "sans-serif"), **sheet.compute(b, [root])})
 
     for item in [*doc.walk(), *doc.legend]:
         anc = item.ancestors()  # nearest first; root last

@@ -8,6 +8,7 @@ The router works on the laid-out AST and decides *where* every edge goes. It rep
 `needs` back to the layout when a channel between two ranks is too narrow for the lanes
 that have to pass through it; the pipeline then widens that gap and routes again.
 """
+
 from __future__ import annotations
 
 import math
@@ -17,7 +18,7 @@ from .layout import direct_child
 from .model import Document, Edge, Group
 from .style import px
 
-LANE = 9.0    # distance between parallel lanes
+LANE = 9.0  # distance between parallel lanes
 CLEAR = 12.0  # min distance between a horizontal run and the boxes above/below it
 RECT_SHAPES = {"box", "square", "round", "pill", "cylinder", "note", "image", "none"}
 ROUND_SHAPES = {"circle", "ellipse", "diamond"}
@@ -59,8 +60,7 @@ def boundary_point(n, tx, ty, shape):
 
 
 def port(n, side):
-    return {"top": (n.cx, n.ay), "bottom": (n.cx, n.ay + n.h),
-            "left": (n.ax, n.cy), "right": (n.ax + n.w, n.cy)}[side]
+    return {"top": (n.cx, n.ay), "bottom": (n.cx, n.ay + n.h), "left": (n.ax, n.cy), "right": (n.ax + n.w, n.cy)}[side]
 
 
 def on_outline(n, p, vert):
@@ -83,19 +83,22 @@ def on_outline(n, p, vert):
 @dataclass
 class Diagonal:
     """When may a bend/ortho jog be a slant instead of a right-angle step?"""
+
     mode: str = "auto"
     max: float = 40.0
     angle: float = 45.0
-    early: bool = False  # fan=spread: slant right after the start stub, so siblings turn together
+    early: bool = False
 
     @classmethod
-    def from_style(cls, st: dict, route: str) -> "Diagonal":
+    def from_style(cls, st: dict, route: str) -> Diagonal:
         dg = str(st.get("diagonal", "40" if route == "bend" else "0")).strip()
         fixed = {"none": 0.0, "always": 1e9}
-        return cls("legacy" if dg == "legacy" else "auto",
-                   fixed[dg] if dg in fixed else px(dg, 40.0),
-                   min(80.0, max(10.0, px(st.get("diagonal-angle"), 45.0))),
-                   str(st.get("fan", "")).strip() == "spread")
+        return cls(
+            "legacy" if dg == "legacy" else "auto",
+            fixed[dg] if dg in fixed else px(dg, 40.0),
+            min(80.0, max(10.0, px(st.get("diagonal-angle"), 45.0))),
+            str(st.get("fan", "")).strip() == "spread",
+        )
 
 
 def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
@@ -109,8 +112,8 @@ def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
     """
     (x0, y0), (x1, y1) = p0, p1
     v = axis == "v"
-    a0, a1 = (y0, y1) if v else (x0, x1)      # main axis
-    c0, c1 = (x0, x1) if v else (y0, y1)      # cross axis
+    a0, a1 = (y0, y1) if v else (x0, x1)  # main axis
+    c0, c1 = (x0, x1) if v else (y0, y1)  # cross axis
     main, cross = a1 - a0, c1 - c0
     sgn = 1.0 if main >= 0 else -1.0
 
@@ -124,7 +127,7 @@ def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
     if mid is not None:  # a lane/channel level wins over the default stub length
         stub = max(2.0, min(stub, abs(mid - a0), abs(a1 - mid)))
     room = abs(main) - 2 * stub
-    if diag.early:  # fan=spread: the slant may use the run up to a short final stub
+    if diag.early:
         room = abs(main) - stub - min(stub, 8.0)
     if diag.max >= 1e9 and room > 1:  # diagonal=always: steepen until the slant fits
         angle = max(angle, math.degrees(math.atan2(abs(cross), room)))
@@ -138,10 +141,7 @@ def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
         else:
             s = min(a0 - stub, max(centre + dlen / 2, a1 + (stub + dlen)))
         return [p0, P(s, c0), P(s + sgn * dlen, c1), p1]
-    if sgn > 0:
-        m = max(a0 + stub, min(centre, a1 - stub))
-    else:
-        m = min(a0 - stub, max(centre, a1 + stub))
+    m = max(a0 + stub, min(centre, a1 - stub)) if sgn > 0 else min(a0 - stub, max(centre, a1 + stub))
     return [p0, P(m, c0), P(m, c1), p1]
 
 
@@ -174,7 +174,7 @@ class Router:
         self.gapkey: dict[str, tuple[str, int]] = {}
         self.needs: dict[tuple[str, int], float] = {}
 
-    def route(self) -> "Router":
+    def route(self) -> Router:
         self._parallel_offsets()
         self._spread_ports()
         self._shared_bends()
@@ -188,7 +188,6 @@ class Router:
         ch = self.channel.get(e.id)
         return (ch[0] + ch[1]) / 2 if ch else None
 
-    # ------------------------------------------------------------ passes
     def _parallel_offsets(self):
         """Edges between the same two nodes get side-by-side lanes. The offset is in
         absolute coordinates, so an edge and its reverse simply take different lanes."""
@@ -215,16 +214,16 @@ class Router:
                 if axis not in ("v", "h"):
                     continue
                 a, b = self.doc.items[e.src], self.doc.items[e.dst]
-                spread = e.style.get("fan", "").strip() == "spread"
-                if flow_dir(lca(a, b, self.doc.root)) == "auto" or \
-                        (e.style.get("route", "curve") in ("straight", "ortho") and not spread):
-                    continue  # ortho fan-in/out merges into a bus instead (unless fan=spread)
+                sp = spread(e)
+                if flow_dir(lca(a, b, self.doc.root)) == "auto" or (e.style.get("route", "curve") in ("straight", "ortho") and not sp):
+                    continue
                 i = 0 if axis == "v" else 1
-                for end, node, here, there in ((0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
-                                               (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0])):
-                    side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else \
-                           ("right" if there[0] > here[0] else "left")
-                    sides.setdefault((node.id, side), []).append((there[i], e.id, end, spread))
+                for end, node, here, there in (
+                    (0, a, pts[0], pts[1] if len(pts) > 2 else pts[-1]),
+                    (1, b, pts[-1], pts[-2] if len(pts) > 2 else pts[0]),
+                ):
+                    side = ("bottom" if there[1] > here[1] else "top") if axis == "v" else ("right" if there[0] > here[0] else "left")
+                    sides.setdefault((node.id, side), []).append((there[i], e.id, end, sp))
         finally:
             self.offset = saved
         for (nid, side), lst in sides.items():
@@ -234,7 +233,7 @@ class Router:
             span = n.w if side in ("top", "bottom") else n.h
             if n.attrs.get("shape", "box") in ROUND_SHAPES and not isinstance(n, Group):
                 span *= 0.6  # stay on the part of the outline that faces the side
-            cap = span if all(x[3] for x in lst) else 18.0  # fan=spread uses the whole side
+            cap = span if all(x[3] for x in lst) else 18.0
             step = min(cap, (span - 12) / (len(lst) - 1)) if span > 12 else 0.0
             lst.sort()
             for k, (_, eid, end, _sp) in enumerate(lst):
@@ -243,8 +242,7 @@ class Router:
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
         level, so they merge into a single bus line (class-diagram style)."""
-        geo = {e.id: self.geometry(e) for e in self.doc.edges
-               if e.style.get("route", "curve") == "ortho" and e.style.get("fan", "").strip() != "spread"}
+        geo = {e.id: self.geometry(e) for e in self.doc.edges if e.style.get("route", "curve") == "ortho" and not spread(e)}
         for key in ("dst", "src"):
             buckets: dict[str, list] = {}
             for e in self.doc.edges:
@@ -288,8 +286,19 @@ class Router:
             if abs(c1 - c0) < 0.5:
                 continue
             lvl = self.level(e)
-            runs.append({"e": e, "axis": axis, "level": (a0 + a1) / 2 if lvl is None else lvl,
-                         "lo": min(c0, c1), "hi": max(c0, c1), "c0": c0, "c1": c1, "a0": a0, "a1": a1})
+            runs.append(
+                {
+                    "e": e,
+                    "axis": axis,
+                    "level": (a0 + a1) / 2 if lvl is None else lvl,
+                    "lo": min(c0, c1),
+                    "hi": max(c0, c1),
+                    "c0": c0,
+                    "c1": c1,
+                    "a0": a0,
+                    "a1": a1,
+                }
+            )
         lanes_at: dict[tuple[str, int], int] = {}
         for r in runs:
             gk = self.gapkey.get(r["e"].id)
@@ -317,8 +326,7 @@ class Router:
             for k in cl:
                 ek = runs[k]["e"]
                 for ln in lanes:
-                    if any((runs[m]["e"].src == ek.src or runs[m]["e"].dst == ek.dst)
-                           and look(runs[m]["e"]) == look(ek) for m in ln):
+                    if any((runs[m]["e"].src == ek.src or runs[m]["e"].dst == ek.dst) and look(runs[m]["e"]) == look(ek) for m in ln):
                         ln.append(k)
                         break
                 else:
@@ -356,7 +364,6 @@ class Router:
             if need > 0.5:
                 self.needs[gk] = max(self.needs.get(gk, 0.0), need)
 
-    # ------------------------------------------------------------ geometry
     def _ports(self, a, b, vert):
         if vert:
             down = b.cy > a.cy
@@ -420,10 +427,8 @@ class Router:
             return [p0] + wps + [p1], ("v" if v0 else "h")
         if d in ("TB", "BT", "LR", "RL") and route != "straight":
             vert = d in ("TB", "BT")
-            if vert:
-                sep = da.ay + da.h <= db.ay or db.ay + db.h <= da.ay
-            else:
-                sep = da.ax + da.w <= db.ax or db.ax + db.w <= da.ax
+            k, n = ("ay", "h") if vert else ("ax", "w")
+            sep = getattr(da, k) + getattr(da, n) <= getattr(db, k) or getattr(db, k) + getattr(db, n) <= getattr(da, k)
             if not sep:
                 vert = not vert  # same rank: connect sideways
             elif not wps:
@@ -462,7 +467,6 @@ class Router:
         p1 = boundary_point(b, *tgt1, b.attrs.get("shape", "box"))
         return [p0] + wps + [p1], ("v" if abs(p1[1] - p0[1]) >= abs(p1[0] - p0[0]) else "h")
 
-    # ------------------------------------------------------------ paths
     def polyline(self, pts, axis, route, radius, stub, mid, diag: Diagonal):
         """Corner points of the drawn path (curves: just the anchor points)."""
         if axis == "L" or route == "straight" or len(pts) < 2:
@@ -514,63 +518,47 @@ class Router:
         return segs
 
 
-STRAIGHT_TOL = 24.0  # a fan=spread branch this close to level is meant to run straight
+STRAIGHT_TOL = 24.0
 
 
-def straighten(doc: Document, router: "Router") -> bool:
-    """`fan=spread`: make the branch that is already almost level with its target exactly
-    straight, one per source node. Two such sources in one column/row group get the gap
-    between them adjusted so both line up; the target's rank in the enclosing layered
-    group then moves sideways by what is left. Stored on the groups (`line_extra`,
-    `rank_shift`) for the next layout pass. Returns True if anything changed."""
-    best: dict[str, tuple[float, Edge, int]] = {}
+def straighten(doc: Document, router: Router) -> bool:
+    """`fan=spread`: snap each source's near-level branch straight on the next layout pass."""
+    best = {}
     for e in doc.edges:
-        if e.style.get("fan", "").strip() != "spread":
-            continue
         pts, axis = router.geometry(e)
-        if axis not in ("v", "h"):
+        if not spread(e) or axis not in ("v", "h"):
             continue
-        i = 0 if axis == "v" else 1
+        i = axis == "h"
         d = pts[-1][i] - pts[0][i]
-        if abs(d) < STRAIGHT_TOL and (e.src not in best or abs(d) < abs(best[e.src][0])):
+        if abs(d) < STRAIGHT_TOL and abs(d) < abs(best.get(e.src, (STRAIGHT_TOL,))[0]):
             best[e.src] = (d, e, i)
-    if not best:
-        return False
-    items = sorted(best.values(), key=lambda t: doc.items[t[1].src].ay + doc.items[t[1].src].ax)
+    groups = {}
+    for d, e, i in sorted(best.values(), key=lambda t: (doc.items[t[1].src].ay, doc.items[t[1].src].ax)):
+        groups.setdefault(doc.items[e.src].parent.id, []).append((d, e, i))
     changed = False
-    ref_d = items[0][0]
-    by_group: dict[str, list] = {}
-    for d, e, i in items:
-        by_group.setdefault(doc.items[e.src].parent.id, []).append((d, e, i))
-    for lst in by_group.values():
-        g = doc.items[lst[0][1].src].parent
-        kids = g.children
-        line = g.attrs.get("layout") == ("column" if lst[0][2] == 1 else "row")
-        ref_d = lst[0][0]
-        for d, e, _ in lst[1:]:
-            if not line:
-                break
-            k = kids.index(doc.items[e.src])
-            if k == 0 or abs(d - ref_d) < 0.05:
-                continue
-            extra = getattr(g, "line_extra", {})
-            extra[k - 1] = extra.get(k - 1, 0.0) + (d - ref_d)
-            g.line_extra = extra
+    for lst in groups.values():
+        ref, e, i = lst[0]
+        g = doc.items[e.src].parent
+        if g.attrs.get("layout") == ("column" if i else "row"):
+            for d, o, _ in lst[1:]:
+                k = g.children.index(doc.items[o.src])
+                if k and abs(d - ref) > 0.05:
+                    bump(g, "line_extra", k - 1, d - ref)
+                    changed = True
+        top = lca(doc.items[e.src], doc.items[e.dst], doc.root)
+        ranks = getattr(getattr(top, "layout_obj", None), "rank_index", {})
+        tgt = direct_child(doc.items[e.dst], top)
+        if abs(ref) > 0.05 and tgt is not None and tgt.id in ranks:
+            bump(top, "rank_shift", ranks[tgt.id], -ref)
             changed = True
-        if abs(ref_d) < 0.05:
-            continue
-        e = lst[0][1]
-        a, b = doc.items[e.src], doc.items[e.dst]
-        top = lca(a, b, doc.root)
-        lay = getattr(top, "layout_obj", None)
-        ranks = getattr(lay, "rank_index", None)
-        cur = b
-        while cur is not None and cur.parent is not top:
-            cur = cur.parent
-        if cur is None or not ranks or cur.id not in ranks:
-            continue
-        shift = getattr(top, "rank_shift", {})
-        shift[ranks[cur.id]] = shift.get(ranks[cur.id], 0.0) - ref_d
-        top.rank_shift = shift
-        changed = True
     return changed
+
+
+def spread(e: Edge) -> bool:
+    return e.style.get("fan", "").strip() == "spread"
+
+
+def bump(g: Group, attr: str, key: int, by: float) -> None:
+    d = getattr(g, attr, {})
+    d[key] = d.get(key, 0.0) + by
+    setattr(g, attr, d)

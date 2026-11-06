@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Line-oriented parser for the Predictygraph DSL (see docs/SPEC.md)."""
+
 from __future__ import annotations
 
 import re
@@ -74,7 +75,7 @@ def tokenize(text: str, lineno: int) -> list[tuple[str, str]]:
     while pos < len(text):
         m = TOKEN_RE.match(text, pos)
         if not m:
-            raise PdgSyntaxError(f"unexpected {text[pos:pos + 12]!r}", lineno)
+            raise PdgSyntaxError(f"unexpected {text[pos : pos + 12]!r}", lineno)
         kind = m.lastgroup
         if kind != "ws":
             toks.append((kind, m.group()))
@@ -139,14 +140,15 @@ class Parser:
         parts = re.split(r'("(?:[^"\\]|\\.)*")', line)
         for k, part in enumerate(parts):
             if k % 2:  # inside a string: plain text, escaped
-                parts[k] = VAR_RE.sub(lambda m: self._var(m[1] or m[2], lineno)
-                                      .replace("\\", "\\\\").replace('"', '\\"'), part)
+                parts[k] = VAR_RE.sub(lambda m: self._var(m[1] or m[2], lineno).replace("\\", "\\\\").replace('"', '\\"'), part)
             else:
+
                 def bare(m):  # after `=` or `.` keep simple values bare; elsewhere it's a label
                     v = self._var(m[1] or m[2], lineno)
                     if m.start() and part[m.start() - 1] in "=." and BARE_RE.match(v):
                         return v
                     return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
                 parts[k] = VAR_RE.sub(bare, part)
         return "".join(parts)
 
@@ -154,7 +156,6 @@ class Parser:
     def scope(self) -> Group:
         return self.stack[-1]
 
-    # -- helpers ---------------------------------------------------------
     def _tail(self, toks, i, lineno):
         label, classes, attrs = None, [], {}
         for kind, val in toks[i:]:
@@ -203,7 +204,6 @@ class Parser:
         self.doc.items[item_id] = item
         return item
 
-    # -- statements ------------------------------------------------------
     def statement(self, toks, lineno):
         kinds = [k for k, _ in toks]
         head = toks[0][1]
@@ -254,8 +254,13 @@ class Parser:
                 self.doc.legend_title = label
                 return
             self._annotation_room(head, self.doc.legend, "legend entries", lineno)
-            entry = Node(id=f"pdg-legend-{len(self.doc.legend)}", label=label or " ".join(classes),
-                         classes=list(classes), attrs=attrs, parent=self.root)
+            entry = Node(
+                id=f"pdg-legend-{len(self.doc.legend)}",
+                label=label or " ".join(classes),
+                classes=list(classes),
+                attrs=attrs,
+                parent=self.root,
+            )
             self.doc.legend.append(entry)
             return
         if head == "group" and len(toks) >= 2 and toks[1][0] == "ident":
@@ -267,7 +272,6 @@ class Parser:
             self.stack.append(g)
             self.vars.append({})
             return
-        # node declaration
         n = self._declare(self.q(head), lineno)
         label, classes, attrs = self._tail(toks, 1, lineno)
         if label is not None:
@@ -318,9 +322,17 @@ class Parser:
         for (srcs, dsts), (arrow, body) in zip(zip(groups, groups[1:]), arrows):
             for s in srcs:
                 for d in dsts:
-                    e = Edge(src=s, dst=d, arrow=arrow, body=body, label=label,
-                             classes=dcls + list(classes), attrs={**defaults, **attrs},
-                             scope=self.scope, index=len(self.doc.edges))
+                    e = Edge(
+                        src=s,
+                        dst=d,
+                        arrow=arrow,
+                        body=body,
+                        label=label,
+                        classes=dcls + list(classes),
+                        attrs={**defaults, **attrs},
+                        scope=self.scope,
+                        index=len(self.doc.edges),
+                    )
                     e.id = f"e{e.index}"
                     self.doc.edges.append(e)
 
@@ -342,8 +354,9 @@ class Parser:
         self._apply_defaults(g, "group")
         depth = len(self.stack)
         self.stack.append(g)
-        self.vars.append({**{k: v for k, v in params.items() if v is not None}, **args,
-                          "ID": gid, "LABEL": label if label is not None else gid})
+        self.vars.append(
+            {**{k: v for k, v in params.items() if v is not None}, **args, "ID": gid, "LABEL": label if label is not None else gid}
+        )
         self.prefixes.append(gid)
         self._expanding = getattr(self, "_expanding", []) + [name]
         try:
@@ -374,8 +387,10 @@ class Parser:
                 raise PdgSyntaxError(f"unclosed def {name!r}", lineno)
             ln, text = lines[i]
             s = strip_comment(text).strip()
-            depth += sum(1 if t == ("punct", "{") else -1 if t == ("punct", "}") else 0
-                         for t in (tokenize(s, ln) if s and not s.startswith("css") else []))
+            depth += sum(
+                1 if t == ("punct", "{") else -1 if t == ("punct", "}") else 0
+                for t in (tokenize(s, ln) if s and not s.startswith("css") else [])
+            )
             if s.startswith("css") and "{" in s:
                 depth += s.count("{") - s.count("}")
             if depth <= 0:
@@ -384,7 +399,6 @@ class Parser:
         self.defs[name] = (params, body)
         return i
 
-    # -- driver ----------------------------------------------------------
     def parse(self, text: str) -> Document:
         self.run(list(enumerate(text.splitlines(), 1)))
         return self.finish(len(text.splitlines()))
@@ -427,7 +441,7 @@ class Parser:
                         raise PdgSyntaxError("unterminated css block", lineno)
                     rest = lines[i][1]
                 self.doc.stylesheets.append(("".join(buf), self.doc.base_dir))
-                tail = strip_comment(rest[j + 1:]).strip()
+                tail = strip_comment(rest[j + 1 :]).strip()
                 if tail:  # statements after the closing brace on the same line
                     for stmt in split_statements(tokenize(self.subst(tail, lines[i][0]), lines[i][0])):
                         self.statement(stmt, lines[i][0])

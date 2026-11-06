@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Document model: graph, groups, nodes, edges."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -14,10 +15,9 @@ class Item:
     label: str | None = None
     classes: list[str] = field(default_factory=list)
     attrs: dict[str, str] = field(default_factory=dict)
-    parent: "Group | None" = None
+    parent: Group | None = None
     style: dict[str, str] = field(default_factory=dict)
     sub_style: dict[str, str] = field(default_factory=dict)  # `sub=` text (CSS `sub` selector)
-    # layout results (relative to parent content origin, then absolute)
     w: float = 0.0
     h: float = 0.0
     x: float = 0.0
@@ -34,7 +34,7 @@ class Item:
     def cy(self) -> float:
         return self.ay + self.h / 2
 
-    def ancestors(self) -> list["Group"]:
+    def ancestors(self) -> list[Group]:
         out, p = [], self.parent
         while p is not None:
             out.append(p)
@@ -91,6 +91,7 @@ class Edge:
 @dataclass
 class Bracket:
     """`bracket a, b "note"`: a curly bracket beside the span of the listed items."""
+
     ids: list[str]
     label: str = ""
     classes: list[str] = field(default_factory=list)
@@ -110,7 +111,7 @@ class Document:
     allow_outside: bool = False  # let image=/css "..." read files outside base_dir
     legend: list[Node] = field(default_factory=list)  # `legend .cls "text"` entries (not laid out)
     legend_title: str | None = None
-    brackets: list["Bracket"] = field(default_factory=list)
+    brackets: list[Bracket] = field(default_factory=list)
 
     def walk(self, g: Group | None = None):
         g = g or self.root

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Hardening: number parsing, var() expansion, path confinement, limits."""
+
 import pytest
 
 from predictygraph import PdgSyntaxError, build_scene, parse, render
@@ -45,8 +46,7 @@ def test_nested_var_fallback():
     assert s.resolve_vars({"fill": "var(--x, var(--y))"})["fill"] == "red"
 
 
-@pytest.mark.parametrize("src", ["a image=/etc/hostname\n", "a image=../../../../etc/hostname\n",
-                                 'css "/etc/hostname"\na\n'])
+@pytest.mark.parametrize("src", ["a image=/etc/hostname\n", "a image=../../../../etc/hostname\n", 'css "/etc/hostname"\na\n'])
 def test_paths_confined(src, tmp_path):
     with pytest.raises(UnsafePathError):
         build_scene(parse(src, str(tmp_path)))

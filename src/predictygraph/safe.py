@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Input hardening shared by the parser, styles, text and animation code."""
+
 from __future__ import annotations
 
 import re

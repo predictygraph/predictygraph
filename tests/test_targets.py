@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Render targets: which fonts measure labels, @target CSS blocks, and font warnings."""
+
 import warnings
 
 import pytest
@@ -86,8 +87,7 @@ def text_width(src: str, target: str | None, node: str = "a") -> float:
 
 
 def test_target_css_block_only_applies_to_its_target():
-    src = ('graph\ncss {\n  node { font-size: 10px; }\n  @target macos, windows { node { font-size: 30px; } }\n}\n'
-           'a "label"\n')
+    src = 'graph\ncss {\n  node { font-size: 10px; }\n  @target macos, windows { node { font-size: 30px; } }\n}\na "label"\n'
     small = text_width(src, "linux")
     assert text_width(src, "windows") > small * 2.5
     assert text_width(src, "macos") > small * 2.5

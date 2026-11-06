@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import re
+
 from predictygraph import render
 
 
@@ -25,6 +26,7 @@ def test_label_above_sits_outside_the_outline():
 
 def test_fan_spread_turns_together_at_45():
     from predictygraph.route import Diagonal, octilinear
+
     d = Diagonal("auto", 1e9, 45.0, True)
     a = octilinear((0, 0), (200, 40), "h", None, 30, d)
     b = octilinear((0, 10), (200, 120), "h", None, 30, d)
@@ -34,12 +36,9 @@ def test_fan_spread_turns_together_at_45():
 
 
 def test_fan_spread_straightens_the_near_level_branch():
-    src = ('graph dir=LR route=ortho diagonal=always balance=center\n'
-           'group f layout=column gap=60 { a "A"\n b "B" }\n'
-           'group s layout=column { s1 "1"\n s2 "2"\n s3 "3"\n s4 "4"\n s5 "5"\n s6 "6" }\n'
-           'a -> s1, s2, s3 fan=spread\nb -> s4, s5, s6 fan=spread\n')
-    from predictygraph import parse
-    from predictygraph import _layout_and_route, _style
+    src = 'graph dir=LR route=ortho diagonal=always balance=center\ngroup f layout=column gap=60 { a "A"\n b "B" }\ngroup s layout=column { s1 "1"\n s2 "2"\n s3 "3"\n s4 "4"\n s5 "5"\n s6 "6" }\na -> s1, s2, s3 fan=spread\nb -> s4, s5, s6 fan=spread\n'
+    from predictygraph import _layout_and_route, _style, parse
+
     doc = parse(src)
     _style(doc, None, None, None)
     router = _layout_and_route(doc)

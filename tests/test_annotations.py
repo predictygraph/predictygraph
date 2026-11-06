@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Subtitles, step badges, legend, caption, accent bars and header bands."""
+
 from predictygraph import build_scene
 from predictygraph.parser import parse
 
@@ -78,7 +79,7 @@ def test_title_fill_band():
 
 
 def test_bracket_widens_canvas_and_draws_note():
-    _, base = scene('graph layout=column\na\nb\nc\n')
+    _, base = scene("graph layout=column\na\nb\nc\n")
     _, sc = scene('graph layout=column\na\nb\nc\nbracket a, b "first two"\nbracket a, c "all"\n')
     assert sc.width > base.width
     assert {"first two", "all"} <= set(texts(sc))
@@ -87,7 +88,9 @@ def test_bracket_widens_canvas_and_draws_note():
 
 def test_bracket_unknown_id_is_an_error():
     import pytest
+
     from predictygraph.parser import PdgSyntaxError
+
     with pytest.raises(PdgSyntaxError):
         parse('a\nbracket a, nope "x"\n')
 

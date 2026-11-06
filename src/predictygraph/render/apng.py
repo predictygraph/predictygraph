@@ -9,6 +9,7 @@ Size controls: `scale` (pixel scale) or `width` (target pixel width, overrides s
 `still` forces one frame; `colors` quantises to a palette (much smaller files for flat
 diagram colours). A scene without animation is always written as a single frame.
 """
+
 from __future__ import annotations
 
 import io
@@ -22,8 +23,16 @@ MAX_PIXELS = 8000  # longest side; keeps a typo in --width/--scale from eating m
 
 
 class ApngWriter:
-    def __init__(self, scene: Scene, fps: int = 20, scale: float = 2.0, seconds: float | None = None,
-                 width: int | None = None, still: bool = False, colors: int | None = None):
+    def __init__(
+        self,
+        scene: Scene,
+        fps: int = 20,
+        scale: float = 2.0,
+        seconds: float | None = None,
+        width: int | None = None,
+        still: bool = False,
+        colors: int | None = None,
+    ):
         self.scene, self.fps = scene, fps
         if width:
             scale = width / max(scene.width, 1.0)
@@ -40,6 +49,7 @@ class ApngWriter:
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("PNG export needs cairosvg: install predictygraph[apng]") from exc
         from PIL import Image
+
         png = cairosvg.svg2png(bytestring=svg.encode(), scale=self.scale)
         return Image.open(io.BytesIO(png)).convert("RGBA")
 
@@ -50,6 +60,7 @@ class ApngWriter:
     def _flatten(self, im):
         """Opaque RGB (diagrams have a background) and, with `colors`, a palette image."""
         from PIL import Image
+
         bg = Image.new("RGBA", im.size, self.scene.background or "#ffffff")
         rgb = Image.alpha_composite(bg, im).convert("RGB")
         if self.colors:
@@ -61,12 +72,29 @@ class ApngWriter:
         if len(frames) == 1:
             frames[0].save(out, format="PNG", optimize=True)
         else:
-            frames[0].save(out, format="PNG", save_all=True, append_images=frames[1:],
-                           duration=round(1000 / self.fps), loop=0, disposal=1, blend=0,
-                           default_image=False, optimize=True)
+            frames[0].save(
+                out,
+                format="PNG",
+                save_all=True,
+                append_images=frames[1:],
+                duration=round(1000 / self.fps),
+                loop=0,
+                disposal=1,
+                blend=0,
+                default_image=False,
+                optimize=True,
+            )
         return out
 
 
-def write_apng(scene: Scene, out: Path, fps: int = 20, scale: float = 2.0, seconds: float | None = None,
-               width: int | None = None, still: bool = False, colors: int | None = None) -> Path:
+def write_apng(
+    scene: Scene,
+    out: Path,
+    fps: int = 20,
+    scale: float = 2.0,
+    seconds: float | None = None,
+    width: int | None = None,
+    still: bool = False,
+    colors: int | None = None,
+) -> Path:
     return ApngWriter(scene, fps, scale, seconds, width, still, colors).save(out)

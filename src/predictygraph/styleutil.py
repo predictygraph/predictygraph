@@ -4,6 +4,7 @@
 
 """Small style readers shared by layout (sizing) and scene (drawing), so both sides
 agree on what a style means: text metrics, accent bars, header bands, title position."""
+
 from __future__ import annotations
 
 from .style import box4, px
@@ -22,14 +23,12 @@ def is_bold(st: dict, default: bool = False) -> bool:
     return default if w is None else w in BOLD
 
 
-def text_block(text: str | None, st: dict, default_fs: float,
-               bold: bool | None = None) -> tuple[float, float, list[str]]:
+def text_block(text: str | None, st: dict, default_fs: float, bold: bool | None = None) -> tuple[float, float, list[str]]:
     """(width, height, lines) of `text` in style `st`; zeros for empty text.
     `bold` overrides the style's weight (step numbers, legend titles)."""
     if not text:
         return 0.0, 0.0, []
-    return measure(text, st.get("font-family", "sans-serif"), font_size(st, default_fs),
-                   is_bold(st) if bold is None else bold)
+    return measure(text, st.get("font-family", "sans-serif"), font_size(st, default_fs), is_bold(st) if bold is None else bold)
 
 
 def accent(st: dict) -> tuple[float, str | None, str] | None:

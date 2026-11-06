@@ -7,6 +7,7 @@
 Which font file is used depends on the active render target (see fonts.py). The target
 is set for the duration of one build via ``use_target``.
 """
+
 from __future__ import annotations
 
 import base64
@@ -15,7 +16,6 @@ import contextvars
 import functools
 import mimetypes
 import re
-from pathlib import Path
 
 from PIL import Image, ImageFont
 

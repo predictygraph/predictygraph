@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """TOML colour themes -> CSS (variables + base rules). See docs/THEMES.md."""
+
 from __future__ import annotations
 
 import os
@@ -12,9 +13,16 @@ from pathlib import Path
 BUNDLED = Path(__file__).parent / "themes"
 HUES = ("red", "orange", "yellow", "green", "cyan", "blue", "purple")
 ROLE_DEFAULTS = {
-    "accent": "blue", "danger": "red", "node-fill": "surface", "node-stroke": "border",
-    "node-text": "fg", "group-fill": "bg-alt", "group-stroke": "border", "group-text": "muted",
-    "edge": "muted", "edge-text": "fg",
+    "accent": "blue",
+    "danger": "red",
+    "node-fill": "surface",
+    "node-stroke": "border",
+    "node-text": "fg",
+    "group-fill": "bg-alt",
+    "group-stroke": "border",
+    "group-text": "muted",
+    "edge": "muted",
+    "edge-text": "fg",
 }
 REQUIRED = ("bg", "surface", "fg", "muted", "border") + HUES
 
@@ -24,8 +32,8 @@ class ThemeError(ValueError):
 
 
 def _mix(a: str, b: str, t: float) -> str:
-    ca = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
-    cb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    ca = [int(a[i : i + 2], 16) for i in (1, 3, 5)]
+    cb = [int(b[i : i + 2], 16) for i in (1, 3, 5)]
     return "#" + "".join(f"{round(x * t + y * (1 - t)):02x}" for x, y in zip(ca, cb))
 
 
@@ -93,8 +101,7 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines.append("graph { background: var(--bg); color: var(--fg); }")
     if "font" in shape:
         lines.append(f'graph {{ font-family: "{shape["font"]}", sans-serif; }}')
-    lines.append(f"node {{ fill: var(--node-fill); stroke: var(--node-stroke); color: var(--node-text); "
-                 f"border-radius: {radius}px; }}")
+    lines.append(f"node {{ fill: var(--node-fill); stroke: var(--node-stroke); color: var(--node-text); border-radius: {radius}px; }}")
     lines.append("group { fill: var(--group-fill); stroke: var(--group-stroke); color: var(--group-text); }")
     lines.append("edge { stroke: var(--edge); color: var(--edge-text); }")
     # semantic helper classes usable on any node/group/edge: .red .green .accent ...

@@ -4,6 +4,7 @@
 
 """Hierarchical layout: each container is laid out independently (inside-out)
 with its own balancing style, then treated as a single box by its parent."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -13,8 +14,6 @@ from .style import box4, px
 from .styleutil import has_title_band, node_padding, text_block, title_position
 from .text import load_image
 
-
-# ---------------------------------------------------------------- sizing
 SUB_GAP = 3.0  # px between a label and its `sub=` lines
 
 
@@ -68,14 +67,12 @@ def size_node(n: Node, doc: Document) -> None:
             n.h += 12
     n.attrs["shape"] = shape
     explicit = (px(n.attrs.get("width"), 0), px(n.attrs.get("height"), 0))
-    mins = (0.0, 0.0) if shape in ("circle", "square") and not n.text_lines else \
-        (px(st.get("min-width"), 0), px(st.get("min-height"), 0))
+    mins = (0.0, 0.0) if shape in ("circle", "square") and not n.text_lines else (px(st.get("min-width"), 0), px(st.get("min-height"), 0))
     n.w, n.h = max(n.w, mins[0], explicit[0]), max(n.h, mins[1], explicit[1])
     if shape in ("circle", "square"):
         n.w = n.h = max(n.w, n.h)
 
 
-# ---------------------------------------------------------------- helpers
 def direct_child(item: Item, g: Group) -> Item | None:
     """Ancestor-or-self of `item` that is a direct child of g."""
     cur = item
@@ -101,7 +98,6 @@ def opt(g: Group, key: str, default: str) -> str:
     return g.attrs.get(key, default)
 
 
-# ---------------------------------------------------------------- layouts
 class Layout:
     def __init__(self, g: Group, doc: Document):
         self.g, self.doc = g, doc
@@ -133,7 +129,7 @@ class LineLayout(Layout):
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
             step = max(gap, need.get(idx, 0.0))
-            step = max(4.0, step + getattr(self.g, "line_extra", {}).get(idx, 0.0))  # straighten()
+            step = max(4.0, step + getattr(self.g, "line_extra", {}).get(idx, 0.0))
             if horizontal:
                 k.x, k.y = pos, off
                 pos += k.w + step
@@ -178,7 +174,7 @@ class GridLayout(Layout):
             rows = int(self.g.attrs["rows"])
             cols = -(-n // rows)
         else:
-            cols = int(opt(self.g, "cols", str(max(1, round(n ** 0.5)))))
+            cols = int(opt(self.g, "cols", str(max(1, round(n**0.5)))))
         gap = px(opt(self.g, "gap", "24"))
         align = opt(self.g, "align", "center")
         slots, taken, auto = {}, set(), []
@@ -226,18 +222,20 @@ class FixedLayout(Layout):
 class RadialLayout(Layout):
     def run(self):
         import math
+
         cid = opt(self.g, "center", self.kids[0].id)
         center = next((k for k in self.kids if k.id == cid), self.kids[0])
         ring = [k for k in self.kids if k is not center]
-        biggest = max((max(k.w, k.h) for k in ring), default=0)
         circumference_need = sum(max(k.w, k.h) + 20 for k in ring)
-        r_auto = max(circumference_need / (2 * math.pi),
-                     max(center.w, center.h) / 2 + max((min(k.w, k.h) for k in ring), default=0) / 2 + 36)
+        r_auto = max(
+            circumference_need / (2 * math.pi), max(center.w, center.h) / 2 + max((min(k.w, k.h) for k in ring), default=0) / 2 + 36
+        )
         start = math.radians(px(opt(self.g, "start-angle", "-90"), -90))
         angles = [start + 2 * math.pi * i / max(1, len(ring)) for i in range(len(ring))]
 
         def support(k, a):  # half-extent of a box along direction a
             return abs(math.cos(a)) * k.w / 2 + abs(math.sin(a)) * k.h / 2
+
         if ring:
             r_auto = max(r_auto, max(support(center, a) + support(k, a) + 24 for k, a in zip(ring, angles)))
         r = px(opt(self.g, "radius", "auto"), 0) or r_auto
@@ -300,6 +298,7 @@ class LayeredLayout(Layout):
         preds = defaultdict(list)
         for a, b, _ in dag:
             preds[b].append(a)
+
         def get_rank(u, seen=()):
             if u in rank:
                 return rank[u]
@@ -309,6 +308,7 @@ class LayeredLayout(Layout):
                     r = max(r, get_rank(p, seen + (u,)) + 1)
             rank[u] = r
             return r
+
         for k in kids:
             get_rank(k.id)
         # pull sources down next to their successors (avoids long first edges)
@@ -357,38 +357,44 @@ class LayeredLayout(Layout):
 
         # 4. crossing reduction (barycenter sweeps) unless order=source
         if order_mode != "source":
+
             def pos_of(layer):
                 return {u: i for i, u in enumerate(layer)}
+
             def crossings(ordr):
                 c = 0
                 for i in range(len(ordr) - 1):
                     p2 = pos_of(ordr[i + 1])
                     es = [(j, p2[v]) for j, u in enumerate(ordr[i]) for v, _ in down[u] if v in p2]
-                    c += sum(1 for x in range(len(es)) for y in range(x + 1, len(es))
-                             if (es[x][0] - es[y][0]) * (es[x][1] - es[y][1]) < 0)
+                    c += sum(1 for x in range(len(es)) for y in range(x + 1, len(es)) if (es[x][0] - es[y][0]) * (es[x][1] - es[y][1]) < 0)
                 return c
-            best, best_c = [list(l) for l in order], crossings(order)
+
+            best, best_c = [list(r) for r in order], crossings(order)
             for it in range(8):
                 rng = range(1, len(order)) if it % 2 == 0 else range(len(order) - 2, -1, -1)
                 nb = up if it % 2 == 0 else down
                 for i in rng:
                     ref = pos_of(order[i - 1] if it % 2 == 0 else order[i + 1])
+
                     def bary(u, i=i, ref=ref):
                         ns = [ref[v] for v, _ in nb[u] if v in ref]
                         return sum(ns) / len(ns) if ns else order[i].index(u)
+
                     order[i] = sorted(order[i], key=lambda u: (bary(u), idx.get(u, 1e9)))
                 c = crossings(order)
                 if c < best_c:
-                    best, best_c = [list(l) for l in order], c
+                    best, best_c = [list(r) for r in order], c
             order = best
 
         # 5. cross-axis coordinates
         def csz(u):
             w, h = size[u]
             return h if horizontal else w
+
         def msz(u):
             w, h = size[u]
             return w if horizontal else h
+
         vgap = node_gap / 2
         pos: dict[str, float] = {}
         widths = []
@@ -410,7 +416,7 @@ class LayeredLayout(Layout):
                     pos[u] += maxw - w
         if balance == "median":
             pos = self._median_pull(order, pos, up, down, csz, node_gap, vgap)
-        for ri, layer in enumerate(order):  # straighten(): whole ranks nudged sideways
+        for ri, layer in enumerate(order):
             d = getattr(g, "rank_shift", {}).get(ri, 0.0)
             for u in layer:
                 pos[u] += d
@@ -468,9 +474,10 @@ class LayeredLayout(Layout):
 
     def _median_pull(self, order, pos, up, down, csz, node_gap, vgap):
         def gap(a, b):
-            return (vgap if a.startswith("__v") or b.startswith("__v") else node_gap)
+            return vgap if a.startswith("__v") or b.startswith("__v") else node_gap
+
         for it in range(12):
-            for li in (range(len(order)) if it % 2 == 0 else range(len(order) - 1, -1, -1)):
+            for li in range(len(order)) if it % 2 == 0 else range(len(order) - 1, -1, -1):
                 layer = order[li]
                 want = {}
                 po = self.portoff
@@ -513,8 +520,14 @@ class LayeredLayout(Layout):
             self.waypoints[(a, b)] = [self.virtual_pos[v] for v in chain]
 
 
-LAYOUTS = {"layered": LayeredLayout, "grid": GridLayout, "row": LineLayout,
-           "column": LineLayout, "radial": RadialLayout, "fixed": FixedLayout}
+LAYOUTS = {
+    "layered": LayeredLayout,
+    "grid": GridLayout,
+    "row": LineLayout,
+    "column": LineLayout,
+    "radial": RadialLayout,
+    "fixed": FixedLayout,
+}
 
 
 def layout_group(g: Group, doc: Document) -> None:
@@ -576,6 +589,7 @@ def shift(item: Item, dx: float) -> None:
         if isinstance(i, Group):
             for c in i.children:
                 move(c)
+
     move(item)
 
 
@@ -595,7 +609,7 @@ def align_x(doc: Document) -> None:
         if dx > 0:  # item and everything right of it move right, up to the right edge
             block = [s for s in p.children if s is item or s.ax >= item.ax + item.w - 1e-6]
             dx = min(dx, hi_edge - max(s.ax + s.w for s in block))
-        else:       # item and everything left of it move left, down to the left edge
+        else:  # item and everything left of it move left, down to the left edge
             block = [s for s in p.children if s is item or s.ax + s.w <= item.ax + 1e-6]
             dx = max(dx, lo_edge - min(s.ax for s in block))
         if abs(dx) > 0.01:
@@ -611,7 +625,6 @@ def layout(doc: Document) -> None:
     layout_group(root, doc)
     absolutize(root, 0, 0)
     align_x(doc)
-    # translate virtual waypoints into absolute coords and attach to edges
     for g in [root] + [i for i in doc.walk() if isinstance(i, Group)]:
         lay = getattr(g, "layout_obj", None)
         wps = getattr(lay, "waypoints", None)

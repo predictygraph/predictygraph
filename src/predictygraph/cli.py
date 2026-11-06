@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """predictygraph CLI: .pdg -> Scene IR -> .svg (animated or static) or .png (APNG)."""
+
 from __future__ import annotations
 
 import warnings
@@ -21,10 +22,11 @@ def main(
     out: Path | None = typer.Option(None, "-o", "--out", help="Output .svg or .png (default: <src>.svg)"),
     css: list[Path] = typer.Option([], "--css", help="Extra stylesheet(s), applied after the file's own"),
     theme: str | None = typer.Option(None, "--theme", help="Theme name or .toml path (overrides graph theme=)"),
-    target: str | None = typer.Option(None, "--target",
-                                      help="Where the SVG will be shown: web, linux, macos, windows or host "
-                                           "(overrides graph target=). Labels are measured with that "
-                                           "platform's fonts"),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Where the SVG will be shown: web, linux, macos, windows or host (overrides graph target=). Labels are measured with that platform's fonts",
+    ),
     themes: bool = typer.Option(False, "--list-themes", help="List bundled themes and exit"),
     check: bool = typer.Option(False, "--check", help="Parse, lay out and route only; report errors"),
     static: bool = typer.Option(False, "--static", help="SVG without animation (first frame)"),
@@ -34,8 +36,7 @@ def main(
     scale: float = typer.Option(2.0, "--scale", help="PNG pixel scale"),
     width: int | None = typer.Option(None, "--width", help="PNG width in pixels (overrides --scale)"),
     colors: int | None = typer.Option(None, "--colors", help="PNG palette size, 2-256 (smaller files)"),
-    allow_outside: bool = typer.Option(False, "--allow-outside",
-                                       help="Let image= and css \"...\" read files outside the input's directory"),
+    allow_outside: bool = typer.Option(False, "--allow-outside", help='Let image= and css "..." read files outside the input\'s directory'),
 ) -> None:
     if themes:
         typer.echo("\n".join(list_themes()))

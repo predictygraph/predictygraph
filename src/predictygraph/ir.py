@@ -10,6 +10,7 @@ Pipeline (same shape as slidr):  .pdg text → AST (model.Document) → layout +
 Everything a writer needs is resolved here: absolute geometry, paint, text lines and
 animation tracks. Writers never look at the AST and never do layout or routing.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,13 +31,14 @@ class Elem:
            font-family, ...). filter="shadow" refers to a scene-level effect.
     tracks animation tracks; the first keyframe equals the static value.
     """
+
     kind: str
     id: str = ""
     cls: str = ""
     geom: dict = field(default_factory=dict)
     paint: dict = field(default_factory=dict)
     tracks: list[Track] = field(default_factory=list)
-    children: list["Elem"] = field(default_factory=list)
+    children: list[Elem] = field(default_factory=list)
 
     def walk(self):
         yield self

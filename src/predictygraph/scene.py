@@ -10,12 +10,13 @@ Also owns the decisions that need the routed geometry of everything at once:
   the crossing line stops around the text (plain geometry: works in every renderer);
 * edge labels sit on the longest straight run of their own edge.
 """
+
 from __future__ import annotations
 
 import math
 from types import SimpleNamespace
 
-from .anim import BORDER_MODES, Track, border_tracks, dash_len, draw_tracks, flow_tracks, seconds
+from .anim import BORDER_MODES, border_tracks, dash_len, draw_tracks, flow_tracks, seconds
 from .ir import Elem, Scene
 from .layout import SUB_GAP
 from .model import Document, Edge, Group, Node
@@ -57,27 +58,25 @@ def accent_segs(x: float, y: float, w: float, h: float, bw: float, r: float, sid
         segs = [("M", *pts[0])] + [("L", *p) for p in pts[1:]]
     elif bw < r:  # inner edge cuts the corner arc at height dy below the top
         dy = r - math.sqrt(r * r - (r - bw) ** 2)
-        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, bw, dy), ("L", bw, h - dy),
-                ("A", r, r, 0, 0, 1, 0, h - r)]
+        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, bw, dy), ("L", bw, h - dy), ("A", r, r, 0, 0, 1, 0, h - r)]
     else:  # strip wider than the radius: full corner arc, then straight along top/bottom
-        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, r, 0), ("L", bw, 0), ("L", bw, h), ("L", r, h),
-                ("A", r, r, 0, 0, 1, 0, h - r)]
+        segs = [("M", 0, r), ("A", r, r, 0, 0, 1, r, 0), ("L", bw, 0), ("L", bw, h), ("L", r, h), ("A", r, r, 0, 0, 1, 0, h - r)]
     segs.append(("Z",))
     flip = side != "left"
 
     def place(s):
         if s[0] == "A":  # (A, rx, ry, rot, large, sweep, px, py): mirroring flips the sweep
             _, rx, ry, rot, large, sweep, px_, py_ = s
-            return ("A", rx, ry, rot, large, 1 - sweep if flip else sweep,
-                    x + (w - px_ if flip else px_), y + py_)
+            return ("A", rx, ry, rot, large, 1 - sweep if flip else sweep, x + (w - px_ if flip else px_), y + py_)
         if s[0] == "Z":
             return s
         return (s[0], x + (w - s[1] if flip else s[1]), y + s[2])
+
     return [place(s) for s in segs]
 
 
 def poly_len(pts) -> float:
-    return sum(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** .5 for (x0, y0), (x1, y1) in zip(pts, pts[1:]))
+    return sum(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5 for (x0, y0), (x1, y1) in zip(pts, pts[1:]))
 
 
 class SceneBuilder:
@@ -86,17 +85,14 @@ class SceneBuilder:
         self.edge_polys: dict[str, list[tuple[float, float]]] = {}
         self.title_needs: dict[str, float] = {}
 
-    # ------------------------------------------------------------ public
     def build(self) -> Scene:
         root = self.doc.root
         edges_layer = Elem("group", cls="pdg-edges")
         edge_elems = [self.edge(e) for e in self.doc.edges]
         self.title_layer = Elem("group", cls="pdg-titles")
-        groups_layer = Elem("group", cls="pdg-groups",
-                            children=[self.group(c) for c in root.children if isinstance(c, Group)])
+        groups_layer = Elem("group", cls="pdg-groups", children=[self.group(c) for c in root.children if isinstance(c, Group)])
         edges_layer.children = edge_elems
-        nodes_layer = Elem("group", cls="pdg-nodes",
-                           children=[self.node(c) for c in self.doc.walk() if isinstance(c, Node)])
+        nodes_layer = Elem("group", cls="pdg-nodes", children=[self.node(c) for c in self.doc.walk() if isinstance(c, Node)])
         layers = [groups_layer, edges_layer, nodes_layer]
         grid = self.grid(root)
         if grid:
@@ -154,12 +150,28 @@ class SceneBuilder:
             x = right + 4 + sum(col_w[:col])
             ym = (y0 + y1) / 2
             q = min(depth, (y1 - y0) / 4)
-            segs = [("M", x, y0), ("Q", x + depth, y0, x + depth, y0 + q), ("L", x + depth, ym - q),
-                    ("Q", x + depth, ym, x + 2 * depth, ym), ("Q", x + depth, ym, x + depth, ym + q),
-                    ("L", x + depth, y1 - q), ("Q", x + depth, y1, x, y1)]
-            kids = [Elem("path", cls="pdg-bracket-line", geom={"segs": segs},
-                         paint={"fill": "none", "stroke": st.get("stroke", "#9ca3af"),
-                                "stroke-width": px(st.get("stroke-width"), 1.5), "stroke-linecap": "round"})]
+            segs = [
+                ("M", x, y0),
+                ("Q", x + depth, y0, x + depth, y0 + q),
+                ("L", x + depth, ym - q),
+                ("Q", x + depth, ym, x + 2 * depth, ym),
+                ("Q", x + depth, ym, x + depth, ym + q),
+                ("L", x + depth, y1 - q),
+                ("Q", x + depth, y1, x, y1),
+            ]
+            kids = [
+                Elem(
+                    "path",
+                    cls="pdg-bracket-line",
+                    geom={"segs": segs},
+                    paint={
+                        "fill": "none",
+                        "stroke": st.get("stroke", "#9ca3af"),
+                        "stroke-width": px(st.get("stroke-width"), 1.5),
+                        "stroke-linecap": "round",
+                    },
+                )
+            ]
             kids += self.text(lines, x + 2 * depth + 6, ym - th / 2, fs, st, "start")
             out.children.append(Elem("group", cls=" ".join(["pdg-bracket"] + b.classes), children=kids))
         return out, 4 + sum(col_w)
@@ -185,32 +197,44 @@ class SceneBuilder:
             ew, _, _ = text_block(n.label, st, 11, bold=False)
             ns = n.style
             r = min(px(ns.get("border-radius"), 3), 4)
-            kids.append(Elem("rect", cls=" ".join(["pdg-legend-swatch"] + n.classes),
-                             geom={"x": 14 + x, "y": y0 + (row_h - sw) / 2, "w": sw, "h": sw, "rx": r},
-                             paint={"fill": ns.get("fill", "#ffffff"), "stroke": ns.get("stroke", "#9ca3af"),
-                                    "stroke-width": 1.2}))
+            kids.append(
+                Elem(
+                    "rect",
+                    cls=" ".join(["pdg-legend-swatch"] + n.classes),
+                    geom={"x": 14 + x, "y": y0 + (row_h - sw) / 2, "w": sw, "h": sw, "rx": r},
+                    paint={"fill": ns.get("fill", "#ffffff"), "stroke": ns.get("stroke", "#9ca3af"), "stroke-width": 1.2},
+                )
+            )
             kids += self.text([n.label], 14 + x + sw + 6, ty, fs, st, "start")
             x += sw + 6 + ew + gap
         bw, bh = x - gap + pad, row_h + 2 * pad
-        box = Elem("rect", cls="pdg-legend-box", geom={"x": 14, "y": top, "w": bw, "h": bh, "rx": 6},
-                   paint={"fill": st.get("fill", "#ffffff"), "stroke": st.get("stroke", "#d1d5db"), "stroke-width": 1})
+        box = Elem(
+            "rect",
+            cls="pdg-legend-box",
+            geom={"x": 14, "y": top, "w": bw, "h": bh, "rx": 6},
+            paint={"fill": st.get("fill", "#ffffff"), "stroke": st.get("stroke", "#d1d5db"), "stroke-width": 1},
+        )
         return Elem("group", cls="pdg-legend", children=[box] + kids), bw + 28, bh + 14
 
-    # ------------------------------------------------------------ text
     @staticmethod
     def text_paint(st: dict, fs: float) -> dict:
-        return {"fill": st.get("color", "#111827"), "font-family": st.get("font-family", "sans-serif"),
-                "font-size": fs, "font-weight": st.get("font-weight", "normal"),
-                "font-style": st.get("font-style", "normal")}
+        return {
+            "fill": st.get("color", "#111827"),
+            "font-family": st.get("font-family", "sans-serif"),
+            "font-size": fs,
+            "font-weight": st.get("font-weight", "normal"),
+            "font-style": st.get("font-style", "normal"),
+        }
 
     @classmethod
     def text(cls, lines, cx, top, fs, st, anchor="middle") -> list[Elem]:
         lh = fs * LINE_H
         paint = cls.text_paint(st, fs)
-        return [Elem("text", geom={"x": cx, "y": top + lh * i + fs * 0.95, "text": line, "anchor": anchor},
-                     paint=dict(paint)) for i, line in enumerate(lines)]
+        return [
+            Elem("text", geom={"x": cx, "y": top + lh * i + fs * 0.95, "text": line, "anchor": anchor}, paint=dict(paint))
+            for i, line in enumerate(lines)
+        ]
 
-    # ------------------------------------------------------------ shapes
     def shape(self, n, shape: str, st: dict) -> list[Elem]:
         x, y, w, h = n.ax, n.ay, n.w, n.h
         stroke = st.get("stroke", "none")
@@ -231,15 +255,31 @@ class SceneBuilder:
             el = Elem("polygon", geom={"points": [(n.cx, y), (x + w, n.cy), (n.cx, y + h), (x, n.cy)]}, paint=paint)
         elif shape == "hexagon":
             k = h / 2 * 0.6
-            el = Elem("polygon", geom={"points": [(x + k, y), (x + w - k, y), (x + w, n.cy), (x + w - k, y + h),
-                                                  (x + k, y + h), (x, n.cy)]}, paint=paint)
+            el = Elem(
+                "polygon",
+                geom={"points": [(x + k, y), (x + w - k, y), (x + w, n.cy), (x + w - k, y + h), (x + k, y + h), (x, n.cy)]},
+                paint=paint,
+            )
         elif shape == "cylinder":
             e = 6.0
-            body = Elem("path", geom={"segs": [("M", x, y + e), ("A", w / 2, e, 0, 0, 1, x + w, y + e),
-                                               ("L", x + w, y + h - e), ("A", w / 2, e, 0, 0, 1, x, y + h - e),
-                                               ("Z",)]}, paint=paint)
-            lid = Elem("path", geom={"segs": [("M", x, y + e), ("A", w / 2, e, 0, 0, 0, x + w, y + e)]},
-                       paint={"fill": "none", "stroke": stroke, "stroke-width": sw})
+            body = Elem(
+                "path",
+                geom={
+                    "segs": [
+                        ("M", x, y + e),
+                        ("A", w / 2, e, 0, 0, 1, x + w, y + e),
+                        ("L", x + w, y + h - e),
+                        ("A", w / 2, e, 0, 0, 1, x, y + h - e),
+                        ("Z",),
+                    ]
+                },
+                paint=paint,
+            )
+            lid = Elem(
+                "path",
+                geom={"segs": [("M", x, y + e), ("A", w / 2, e, 0, 0, 0, x + w, y + e)]},
+                paint={"fill": "none", "stroke": stroke, "stroke-width": sw},
+            )
             return [body, lid]
         else:
             return []
@@ -251,9 +291,13 @@ class SceneBuilder:
                 dash = f"{max(4.0, sw * 4):g} {max(3.0, sw * 3):g}"
                 el.paint["stroke-dasharray"] = dash
             if mode == "glow":
-                halo = Elem(el.kind, cls="pdg-border-glow", geom=dict(el.geom),
-                            paint={"fill": "none", "stroke": stroke, "stroke-width": sw},
-                            tracks=border_tracks("glow", sw, dash, dur))
+                halo = Elem(
+                    el.kind,
+                    cls="pdg-border-glow",
+                    geom=dict(el.geom),
+                    paint={"fill": "none", "stroke": stroke, "stroke-width": sw},
+                    tracks=border_tracks("glow", sw, dash, dur),
+                )
                 return [halo, el]
             el.tracks = border_tracks(mode, sw, dash, dur)
         return [el]
@@ -270,8 +314,7 @@ class SceneBuilder:
             gap = 4 if n.text_lines else 0
             block = img["dh"] + gap + n.text_h
             iy = n.ay + (n.h - block) / 2 if shape != "image" else n.ay
-            out.children.append(Elem("image", geom={"x": ix, "y": iy, "w": img["dw"], "h": img["dh"],
-                                                    "href": img["href"]}))
+            out.children.append(Elem("image", geom={"x": ix, "y": iy, "w": img["dw"], "h": img["dh"], "href": img["href"]}))
             out.children += self.text(n.text_lines, n.cx, iy + img["dh"] + gap, fs, st)
         else:
             out.children += self._node_text(n, st, fs)
@@ -297,13 +340,23 @@ class SceneBuilder:
             return []
         bw, color, side = a
         r = min(corner_radius(st, it.attrs.get("shape", "box"), it.w, it.h), it.h / 2)
-        return [Elem("path", cls="pdg-accent", geom={"segs": accent_segs(it.ax, it.ay, it.w, it.h, bw, r, side)},
-                     paint={"fill": color or st.get("stroke", "#22c55e")})]
+        return [
+            Elem(
+                "path",
+                cls="pdg-accent",
+                geom={"segs": accent_segs(it.ax, it.ay, it.w, it.h, bw, r, side)},
+                paint={"fill": color or st.get("stroke", "#22c55e")},
+            )
+        ]
 
     def group(self, g: Group) -> Elem:
         st = g.style
-        out = Elem("group", id=g.id, cls=" ".join(["pdg-group"] + g.classes),
-                   children=self.shape(self._frame(g, st), g.attrs.get("shape", "box"), st))
+        out = Elem(
+            "group",
+            id=g.id,
+            cls=" ".join(["pdg-group"] + g.classes),
+            children=self.shape(self._frame(g, st), g.attrs.get("shape", "box"), st),
+        )
         out.children += self.accent(g, st)
         if g.label and title_position(st) == "left":
             out.children.append(self._side_title(g, st))
@@ -327,18 +380,33 @@ class SceneBuilder:
         """`title-fill`: a band behind the title, rounded like the group's top corners."""
         bh = box4(st.get("padding"), 14)[0] + g.label_h - 3
         r = min(corner_radius(st, g.attrs.get("shape", "box"), g.w, g.h), bh)
-        return Elem("path", cls="pdg-title-band", paint={"fill": st["title-fill"]}, geom={"segs": [
-            ("M", g.ax, g.ay + bh), ("L", g.ax, g.ay + r), ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
-            ("L", g.ax + g.w - r, g.ay), ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
-            ("L", g.ax + g.w, g.ay + bh), ("Z",)]})
+        return Elem(
+            "path",
+            cls="pdg-title-band",
+            paint={"fill": st["title-fill"]},
+            geom={
+                "segs": [
+                    ("M", g.ax, g.ay + bh),
+                    ("L", g.ax, g.ay + r),
+                    ("A", r, r, 0, 0, 1, g.ax + r, g.ay),
+                    ("L", g.ax + g.w - r, g.ay),
+                    ("A", r, r, 0, 0, 1, g.ax + g.w, g.ay + r),
+                    ("L", g.ax + g.w, g.ay + bh),
+                    ("Z",),
+                ]
+            },
+        )
 
     def _side_title(self, g: Group, st: dict) -> Elem:
         """`label-position: left`: the title turned 90°, pinned near the left edge (padding
         moves the content, not the title, so an edge can pass between them)."""
         fs = font_size(st, 12)
         x = g.ax + 8 + g.side_w / 2 + fs * 0.35
-        return Elem("text", geom={"x": x, "y": g.cy, "text": g.label.replace("\n", " "),
-                                  "anchor": "middle", "rotate": -90}, paint=self.text_paint(st, fs))
+        return Elem(
+            "text",
+            geom={"x": x, "y": g.cy, "text": g.label.replace("\n", " "), "anchor": "middle", "rotate": -90},
+            paint=self.text_paint(st, fs),
+        )
 
     def _top_title(self, g: Group, st: dict, out: Elem) -> None:
         """Title (and `sub=` line) at the top or bottom, sliding clear of crossing edges."""
@@ -353,8 +421,7 @@ class SceneBuilder:
         texts = self.text(g.label.split("\n"), x0, top, fs, st, "start")
         if g.attrs.get("sub") and not bottom:
             sst = g.sub_style or st
-            texts += self.text(g.attrs["sub"].split("\n"), x0, top + g.title_h + SUB_GAP,
-                               font_size(sst, 11), sst, "start")
+            texts += self.text(g.attrs["sub"].split("\n"), x0, top + g.title_h + SUB_GAP, font_size(sst, 11), sst, "start")
         xs = self._crossings(box[1], box[3], box[0], box[2])
         if not xs:
             out.children += texts
@@ -367,9 +434,12 @@ class SceneBuilder:
         fill = st.get("fill", "none")
         if fill in ("none", "transparent"):
             fill = self.doc.root.style.get("background", "#ffffff")
-        patch = Elem("rect", cls="pdg-title-bg",
-                     geom={"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1], "rx": 3},
-                     paint={"fill": fill})
+        patch = Elem(
+            "rect",
+            cls="pdg-title-bg",
+            geom={"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1], "rx": 3},
+            paint={"fill": fill},
+        )
         self.title_layer.children.append(Elem("group", cls="pdg-group-title", children=[patch] + texts))
 
     def _title_x(self, g, st, tw, pl, pr, top, th) -> float:
@@ -400,7 +470,6 @@ class SceneBuilder:
                         xs.append(x)
         return xs
 
-    # ------------------------------------------------------------ edges
     def edge(self, e: Edge) -> Elem:
         st = e.style
         R = self.router
@@ -418,8 +487,7 @@ class SceneBuilder:
             arrow = st["arrow"]
         pts = list(pts)
         hl = px(st.get("head-size"), min(18.0, 6.0 + width * 2.2))
-        free = route == "straight" or flow_dir(lca(self.doc.items[e.src], self.doc.items[e.dst],
-                                                   self.doc.root)) == "auto"
+        free = route == "straight" or flow_dir(lca(self.doc.items[e.src], self.doc.items[e.dst], self.doc.root)) == "auto"
 
         def end_dir(tip, prev):
             if free or axis == "L":
@@ -428,8 +496,8 @@ class SceneBuilder:
                 dx, dy = 0.0, tip[1] - prev[1]
             else:
                 dx, dy = tip[0] - prev[0], 0.0
-            l = math.hypot(dx, dy) or 1.0
-            return dx / l, dy / l
+            n = math.hypot(dx, dy) or 1.0
+            return dx / n, dy / n
 
         heads = []
         for end, nb, want, key in ((-1, -2, ("end", "both"), "head"), (0, 1, ("start", "both"), "head-start")):
@@ -463,10 +531,18 @@ class SceneBuilder:
             cls += " pdg-draw"
             out.cls = cls
             L = poly_len(self.edge_polys[e.id]) + 2
-            out.children.append(Elem("path", cls="pdg-line", geom={"segs": segs},
-                                     paint=dict(base, **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round",
-                                                         "stroke-dasharray": f"{L:.1f} {L:.1f}"}),
-                                     tracks=draw_tracks(L, seconds(st.get("flow-speed"), 3.0))))
+            out.children.append(
+                Elem(
+                    "path",
+                    cls="pdg-line",
+                    geom={"segs": segs},
+                    paint=dict(
+                        base,
+                        **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round", "stroke-dasharray": f"{L:.1f} {L:.1f}"},
+                    ),
+                    tracks=draw_tracks(L, seconds(st.get("flow-speed"), 3.0)),
+                )
+            )
         elif not flowing:
             p = dict(base, **{"stroke-width": width, "stroke-linecap": "butt" if heads else "round"})
             if dash:
@@ -477,14 +553,18 @@ class SceneBuilder:
             fwidth = width if dash else max(width * 1.8, 2.5)
             dur = seconds(st.get("flow-speed"), 1.2)
             if not dash:  # faint guide line under the moving dots
-                out.children.append(Elem("path", cls="pdg-line", geom={"segs": segs},
-                                         paint=dict(base, **{"stroke-width": max(0.75, width * 0.5),
-                                                             "stroke-opacity": 0.3})))
+                out.children.append(
+                    Elem(
+                        "path",
+                        cls="pdg-line",
+                        geom={"segs": segs},
+                        paint=dict(base, **{"stroke-width": max(0.75, width * 0.5), "stroke-opacity": 0.3}),
+                    )
+                )
             dirs = ["forward", "reverse"] if flow == "both" else [flow]
             ring = not dash and st.get("flow-dot", "dot").strip() == "ring"
             if ring:
                 fwidth, fdash = max(fwidth, 8.0), f"0.1 {max(24.0, width * 10):g}"
-                # start rings one ring-width out so the first one clears the node outline
                 rp = list(pts)
                 for i, j in ((0, 1), (-1, -2)):
                     dv = end_dir(rp[i], rp[j])
@@ -494,19 +574,35 @@ class SceneBuilder:
                 tracks = flow_tracks(fdash, dur, fd == "reverse")
                 if flow == "both" and k == 1:
                     tracks = [t.shifted(dash_len(fdash) / 2) for t in tracks]
-                out.children.append(Elem("path", cls=f"pdg-line pdg-flow-{fd}", geom={"segs": segs},
-                                         paint=dict(base, **{"stroke-width": fwidth, "stroke-dasharray": fdash,
-                                                             "stroke-linecap": "round"}),
-                                         tracks=tracks))
+                out.children.append(
+                    Elem(
+                        "path",
+                        cls=f"pdg-line pdg-flow-{fd}",
+                        geom={"segs": segs},
+                        paint=dict(base, **{"stroke-width": fwidth, "stroke-dasharray": fdash, "stroke-linecap": "round"}),
+                        tracks=tracks,
+                    )
+                )
                 if ring:  # hollow dot: same moving pattern, background colour, narrower
-                    out.children.append(Elem("path", cls=f"pdg-line pdg-flow-ring", geom={"segs": segs},
-                                             paint=dict(base, **{"stroke": self.doc.root.style.get("background", "#ffffff"),
-                                                                 "stroke-width": fwidth - 4, "stroke-dasharray": fdash,
-                                                                 "stroke-linecap": "round"}),
-                                             tracks=tracks))
+                    out.children.append(
+                        Elem(
+                            "path",
+                            cls="pdg-line pdg-flow-ring",
+                            geom={"segs": segs},
+                            paint=dict(
+                                base,
+                                **{
+                                    "stroke": self.doc.root.style.get("background", "#ffffff"),
+                                    "stroke-width": fwidth - 4,
+                                    "stroke-dasharray": fdash,
+                                    "stroke-linecap": "round",
+                                },
+                            ),
+                            tracks=tracks,
+                        )
+                    )
         for kind, tip, dvec in heads:
-            out.children.append(self.head(kind, tip, dvec, hl, color, width,
-                                          self.doc.root.style.get("background", "#ffffff")))
+            out.children.append(self.head(kind, tip, dvec, hl, color, width, self.doc.root.style.get("background", "#ffffff")))
         if e.label:
             lab = self.edge_label(e, self.edge_polys[e.id])
             out.children += lab
@@ -526,8 +622,7 @@ class SceneBuilder:
         for x, y, dx, dy in ((x0, y0, 1, 1), (x1, y0, -1, 1), (x0, y1, 1, -1), (x1, y1, -1, -1)):
             segs += [("M", x + dx * k, y), ("L", x, y), ("L", x, y + dy * k)]
         col = st.get("stroke") or st.get("--border") or "#888888"
-        return [Elem("path", cls="pdg-corners", geom={"segs": segs},
-                     paint={"fill": "none", "stroke": col, "stroke-width": 1})]
+        return [Elem("path", cls="pdg-corners", geom={"segs": segs}, paint={"fill": "none", "stroke": col, "stroke-width": 1})]
 
     def grid(self, root):
         """`grid=N` on the graph: faint N px background grid (decoration only)."""
@@ -540,8 +635,11 @@ class SceneBuilder:
         for j in range(1, int(root.h // n) + 1):
             segs += [("M", 0, j * n), ("L", root.w, j * n)]
         col = root.style.get("grid-color") or root.style.get("--border") or "#888888"
-        return Elem("group", cls="pdg-grid", children=[Elem("path", geom={"segs": segs},
-                    paint={"fill": "none", "stroke": col, "stroke-width": 1, "stroke-opacity": 0.35})])
+        return Elem(
+            "group",
+            cls="pdg-grid",
+            children=[Elem("path", geom={"segs": segs}, paint={"fill": "none", "stroke": col, "stroke-width": 1, "stroke-opacity": 0.35})],
+        )
 
     def step_badge(self, e, poly, label_box=None) -> list[Elem]:
         """Numbered circle for an edge. Next to the label when there is one; on the line a
@@ -558,9 +656,12 @@ class SceneBuilder:
             cx, cy = label_box["x"] - r - 3, label_box["y"] + label_box["h"] / 2
         else:
             cx, cy = self._step_spot(e, poly, r)
-        circ = Elem("circle", cls="pdg-step", geom={"cx": cx, "cy": cy, "r": r},
-                    paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"),
-                           "stroke-width": 1.5})
+        circ = Elem(
+            "circle",
+            cls="pdg-step",
+            geom={"cx": cx, "cy": cy, "r": r},
+            paint={"fill": st.get("fill", "#374151"), "stroke": self.doc.root.style.get("background", "#ffffff"), "stroke-width": 1.5},
+        )
         return [circ] + self.text([txt], cx, cy - fs * LINE_H / 2, fs, st)
 
     STEP_ROOM = 3.0  # an edge must be this many circle diameters long to carry its step
@@ -582,12 +683,12 @@ class SceneBuilder:
                 break
             acc += seg
         d = math.hypot(bx - ax, by - ay) or 1.0
-        nx, ny = -(by - ay) / d, (bx - ax) / d  # unit normal
+        nx, ny = -(by - ay) / d, (bx - ax) / d
         off = r + 4
         sides = [(mx - nx * off, my - ny * off), (mx + nx * off, my + ny * off)]
         if abs(by - ay) >= abs(bx - ax):  # vertical-ish edge: prefer the left side
             sides.sort(key=lambda p: p[0])
-        else:                             # horizontal-ish edge: prefer above
+        else:  # horizontal-ish edge: prefer above
             sides.sort(key=lambda p: p[1])
         free = [p for p in sides if not self._on_a_box(p, r, e)]
         return (free or sides)[0]
@@ -617,10 +718,14 @@ class SceneBuilder:
         line = {"fill": "none", "stroke": color, "stroke-width": max(1.2, width)}
         bar = lambda a: Elem("polyline", geom={"points": [P(a, hw), P(a, -hw)]}, paint=line)  # noqa: E731
         crow = Elem("polyline", geom={"points": [P(0, hw), P(hl, 0), P(0, -hw)]}, paint=line)
-        ring = Elem("circle", geom={"cx": P(hl * 1.5, 0)[0], "cy": P(hl * 1.5, 0)[1], "r": hw * 0.6},
-                    paint=dict(line, fill=bg))
-        er = {"one": [bar(hl * 0.5), bar(hl * 0.9)], "many": [crow], "zero-one": [bar(hl * 0.5), ring],
-              "zero-many": [crow, ring], "one-many": [crow, bar(hl * 1.3)]}
+        ring = Elem("circle", geom={"cx": P(hl * 1.5, 0)[0], "cy": P(hl * 1.5, 0)[1], "r": hw * 0.6}, paint=dict(line, fill=bg))
+        er = {
+            "one": [bar(hl * 0.5), bar(hl * 0.9)],
+            "many": [crow],
+            "zero-one": [bar(hl * 0.5), ring],
+            "zero-many": [crow, ring],
+            "one-many": [crow, bar(hl * 1.3)],
+        }
         if kind in ER_HEADS:
             return Elem("group", cls="pdg-head", children=er[kind])
         shapes = {
@@ -645,8 +750,11 @@ class SceneBuilder:
         best = segs[-1] if fits else max(segs, key=lambda s: math.dist(*s))
         (ax, ay), (bx, by) = best
         t = 0.5
-        lvl = self.router.bend_level.get(e.id) if any(
-            o is not e and o.src == e.src and self.router.bend_level.get(o.id) is not None for o in self.doc.edges) else None
+        lvl = (
+            self.router.bend_level.get(e.id)
+            if any(o is not e and o.src == e.src and self.router.bend_level.get(o.id) is not None for o in self.doc.edges)
+            else None
+        )
         if len(segs) == 1 and lvl is not None:  # straight sibling of a fan-out: below the bus too
             v = abs(bx - ax) < abs(by - ay)
             a0, a1 = (ay, by) if v else (ax, bx)
@@ -654,7 +762,10 @@ class SceneBuilder:
                 t = ((lvl + a1) / 2 - a0) / (a1 - a0)
         mx, my = ax + (bx - ax) * t, ay + (by - ay) * t
         bg = st.get("background", self.doc.root.style.get("background", "#ffffff"))
-        box = Elem("rect", cls="pdg-label-bg", geom={"x": mx - w / 2 - 3, "y": my - h / 2 - 1, "w": w + 6,
-                                                       "h": h + 2, "rx": 3},
-                   paint={"fill": bg, "fill-opacity": 0.9})
+        box = Elem(
+            "rect",
+            cls="pdg-label-bg",
+            geom={"x": mx - w / 2 - 3, "y": my - h / 2 - 1, "w": w + 6, "h": h + 2, "rx": 3},
+            paint={"fill": bg, "fill-opacity": 0.9},
+        )
         return [box] + self.text(lines, mx, my - h / 2, fs, st)

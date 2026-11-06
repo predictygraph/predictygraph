@@ -16,6 +16,7 @@ Bundled metric fonts (no outlines, widths and kerning only) stand in for common 
 including proprietary ones with identical widths (Liberation Sans = Arial/Helvetica,
 Liberation Serif = Times New Roman, Carlito = Calibri).
 """
+
 from __future__ import annotations
 
 import functools
@@ -36,31 +37,34 @@ METRIC = {
 }
 # Proprietary or common fonts with identical advance widths to a bundled one.
 ALIASES = {
-    "arial": "liberation sans", "helvetica": "liberation sans", "helvetica neue": "liberation sans",
+    "arial": "liberation sans",
+    "helvetica": "liberation sans",
+    "helvetica neue": "liberation sans",
     "arimo": "liberation sans",
-    "times new roman": "liberation serif", "times": "liberation serif", "tinos": "liberation serif",
-    "courier new": "liberation mono", "courier": "liberation mono", "cousine": "liberation mono",
+    "times new roman": "liberation serif",
+    "times": "liberation serif",
+    "tinos": "liberation serif",
+    "courier new": "liberation mono",
+    "courier": "liberation mono",
+    "cousine": "liberation mono",
     "calibri": "carlito",
-    "bitstream vera sans": "dejavu sans", "verdana": "dejavu sans",
+    "bitstream vera sans": "dejavu sans",
+    "verdana": "dejavu sans",
 }
 
 # Fonts each platform ships, and what the generic CSS families resolve to there.
 PLATFORMS = {
     "linux": {
         "has": {"dejavu sans", "liberation sans", "liberation serif", "liberation mono", "carlito"},
-        "generic": {"sans-serif": "dejavu sans", "serif": "liberation serif", "monospace": "liberation mono",
-                    "system-ui": "dejavu sans"},
+        "generic": {"sans-serif": "dejavu sans", "serif": "liberation serif", "monospace": "liberation mono", "system-ui": "dejavu sans"},
     },
     "macos": {
-        "has": {"helvetica", "helvetica neue", "arial", "times", "times new roman", "courier", "courier new",
-                "verdana"},
-        "generic": {"sans-serif": "helvetica", "serif": "times", "monospace": "courier",
-                    "system-ui": "helvetica neue"},
+        "has": {"helvetica", "helvetica neue", "arial", "times", "times new roman", "courier", "courier new", "verdana"},
+        "generic": {"sans-serif": "helvetica", "serif": "times", "monospace": "courier", "system-ui": "helvetica neue"},
     },
     "windows": {
         "has": {"arial", "times new roman", "courier new", "calibri", "verdana"},
-        "generic": {"sans-serif": "arial", "serif": "times new roman", "monospace": "courier new",
-                    "system-ui": "arial"},
+        "generic": {"sans-serif": "arial", "serif": "times new roman", "monospace": "courier new", "system-ui": "arial"},
     },
 }
 TARGETS = ("host", "web", *PLATFORMS)
@@ -79,9 +83,9 @@ def families(css: str) -> list[str]:
 
 @dataclass(frozen=True)
 class FontChoice:
-    path: str | None      # file to measure with; None = Pillow's built-in default
-    family: str           # the family the viewer is expected to draw with
-    exact: bool           # True if widths are known to match that family
+    path: str | None  # file to measure with; None = Pillow's built-in default
+    family: str  # the family the viewer is expected to draw with
+    exact: bool  # True if widths are known to match that family
 
 
 def bundled(family: str, bold: bool) -> str | None:
@@ -98,8 +102,9 @@ def fontconfig(family: str, bold: bool) -> tuple[str | None, str | None]:
     """(file, resolved family) from fc-match, or (None, None) without fontconfig."""
     pattern = family + (":bold" if bold else "")
     try:
-        out = subprocess.run(["fc-match", "-f", "%{file}\t%{family[0]}", "--", pattern],
-                             capture_output=True, text=True, timeout=5, check=False).stdout.strip()
+        out = subprocess.run(
+            ["fc-match", "-f", "%{file}\t%{family[0]}", "--", pattern], capture_output=True, text=True, timeout=5, check=False
+        ).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return None, None
     path, _, fam = out.partition("\t")
@@ -142,11 +147,12 @@ class FontResolver:
             path, got = fontconfig(fam, bold)
             if path and got == fam:
                 return FontChoice(path, fam, True)
-            if (b := bundled(fam, bold)):
+            if b := bundled(fam, bold):
                 return FontChoice(b, fam, True)
         path, got = fontconfig(fams[0], bold)
-        self.warn(f"font {fams[0]!r} is not installed; measuring with {got or 'a default font'} instead. "
-                  f"Set a target (e.g. --target web) or install the font")
+        self.warn(
+            f"font {fams[0]!r} is not installed; measuring with {got or 'a default font'} instead. Set a target (e.g. --target web) or install the font"
+        )
         return FontChoice(path, got or fams[0], False)
 
     @functools.lru_cache(maxsize=256)
