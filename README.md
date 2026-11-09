@@ -10,6 +10,7 @@ SPDX-License-Identifier: Apache-2.0
 plain-CSS styling, and static or animated SVG/APNG output (no browser).
 Spec: [docs/SPEC.md](docs/SPEC.md). Docs: [predictygraph.github.io](https://predictygraph.github.io/).
 Editor support: [tree-sitter-pdg](https://github.com/predictygraph/tree-sitter-pdg).
+In the browser: [predictygraph-js](https://github.com/predictygraph/predictygraph-js).
 Rendered examples and the gallery: [predictygraph.github.io](https://predictygraph.github.io/). This repo keeps
 only `.pdg` sources; images live in the docs repo (git-lfs).
 
