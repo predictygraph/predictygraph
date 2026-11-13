@@ -62,7 +62,7 @@ def load_theme(name: str, base_dir: str = ".", _seen=()) -> dict:
         if data["extends"] in _seen:
             raise ThemeError(f"{path}: extends cycle")
         parent = load_theme(data["extends"], str(path.parent), _seen + (name,))
-        for sect in ("palette", "roles", "shape"):
+        for sect in ("palette", "roles", "shape", "seaborn"):  # [seaborn]: chart settings for decktile, unused here
             parent.setdefault(sect, {}).update(data.get(sect, {}))
         if "css" in data:  # extra rules stack: parent's first, then the child's
             parent["css"] = parent.get("css", "") + "\n" + data["css"]

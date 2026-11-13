@@ -95,3 +95,11 @@ def test_align_x_keeps_gaps_by_moving_neighbours():
 
     assert abs(gap(doc) - gap(plain)) < 0.01  # b moved with a: the label still fits
     assert doc.items["a"].ax > plain.items["a"].ax
+
+
+def test_extends_merges_seaborn_section(tmp_path):
+    from predictygraph.theme import load_theme
+
+    (tmp_path / "brand.toml").write_text('schema = 1\nextends = "hami"\n[seaborn]\npalette = ["blue"]\n')
+    t = load_theme("brand.toml", str(tmp_path))
+    assert t["seaborn"] == {"palette": ["blue"]} and t["palette"]["green"] == "#16a34a"
