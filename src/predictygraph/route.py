@@ -133,7 +133,7 @@ def octilinear(p0, p1, axis, mid, stub, diag: Diagonal):
         angle = max(angle, math.degrees(math.atan2(abs(cross), room)))
     dlen = abs(cross) / math.tan(math.radians(angle))  # main-axis length the slant uses
     centre = mid if mid is not None else (a0 + a1) / 2
-    if abs(cross) <= diag.max and dlen <= room:
+    if abs(cross) <= diag.max and dlen <= room + 1e-6:  # always: dlen == room up to rounding
         if diag.early:
             s = a0 + sgn * stub
         elif sgn > 0:

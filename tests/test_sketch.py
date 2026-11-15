@@ -83,3 +83,12 @@ def test_label_at_start_has_no_background():
     svg = render('graph route=ortho\na\nb\na -> b "x" exit=right enter=top label-at=start')
     edge = svg.split('<g id="e0"', 1)[1].split("</g>", 1)[0]
     assert "pdg-label-bg" not in edge and ">x<" in edge
+
+
+def test_diagonal_always_slants_every_jog():
+    from predictygraph.route import Diagonal, octilinear
+
+    diag = Diagonal("auto", 1e9, 45.0)
+    for cross in (18.0, 35.0, 78.0):
+        pts = octilinear((0.0, 0.0), (cross, 48.0), "v", None, 9.0, diag)
+        assert len(pts) == 4 and pts[1][0] != pts[2][0] and pts[1][1] != pts[2][1]
