@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Two teams asking for GPUs on one 4x V100 (32G) node, without and with HAMi.
+# Lucide `icon=user`, draw.io style `sketch: 1` for the arrow, `hatch:` for reserved, unused memory.
+graph dir=LR route=ortho rank-gap=220
+
+css {
+  graph  { padding: 20px; color: #111827; }
+  node   { border-radius: 0; stroke-width: 1.5; min-width: 0; min-height: 0; padding: 4px; font-size: 15px; }
+  group  { fill: none; stroke: none; padding: 0; font-weight: normal; font-size: 15px; color: #111827; }
+  .torch { fill: #ffe6cc; stroke: #d79b00; }
+  .qwen  { fill: #dae8fc; stroke: #6c8ebf; }
+  .free  { fill: #d5e8d4; stroke: #82b366; }
+  .empty { fill: #ffffff; stroke: #c4c4c4; }
+  .waste { fill: #ffffff; stroke: #c4c4c4; hatch: #374151; hatch-gap: 12px; }
+  .id    { fill: #ffffff; stroke: #c4c4c4; }
+  .title { color: #7ea6e0; font-size: 22px; font-weight: bold; }
+  #before, #after, #u_torch, #u_chat { label-position: bottom; }
+  edge.hami { stroke: #82b366; stroke-width: 3; sketch: 1; roughness: 3; head: open; rank-gap: 220; font-size: 20px; }
+}
+
+# One GPU: top cell, bottom cell, name. 32G = 160 px.
+def gpu name="GPU" top=empty top_label="" top_h=80 mid=empty mid_label="" mid_h=80 {
+  t "$top_label" .$top height=$top_h width=96
+  m "$mid_label" .$mid height=$mid_h width=96
+  n "$name" .id height=28 width=96
+}
+
+# One unused GPU: a single free cell over its name.
+def idle name="GPU" {
+  t "Available" .free height=160 width=96
+  n "$name" .id height=28 width=96
+}
+
+# One requested GPU as the user sees it: free space over the slice they asked for.
+def want cls=empty h=50 {
+  f "" .empty height=${h} width=70
+  w "" .$cls height=60 width=70
+}
+
+group users layout=row gap=40 {
+  group u_torch "Request 2 GPUs\n10G/GPU" layout=column gap=8 {
+    torch "Pytorch User" .torch icon=user img-width=72
+    group torch_bars layout=row gap=12 {
+      use want tw1 cls=torch h=90 layout=column gap=0
+      use want tw2 cls=torch h=90 layout=column gap=0
+    }
+  }
+  group u_chat "Request 2 GPUs\n20G/GPU" layout=column gap=8 {
+    chat "Support Chat" .qwen icon=user img-width=72
+    group chat_bars layout=row gap=12 {
+      use want cw1 cls=qwen h=40 layout=column gap=0
+      use want cw2 cls=qwen h=40 layout=column gap=0
+    }
+  }
+}
+
+group node layout=column gap=30 {
+  group before "Whole GPU occupied                          Wasted" layout=row gap=0 {
+    use gpu b0 name="GPU 0" top=waste top_h=110 mid=torch mid_label="Pytorch" mid_h=50 layout=column gap=0
+    use gpu b1 name="GPU 1" top=waste top_h=110 mid=torch mid_label="Pytorch" mid_h=50 layout=column gap=0
+    use gpu b2 name="GPU 2" top=waste top_h=60 mid=qwen mid_label="Qwen" mid_h=100 layout=column gap=0
+    use gpu b3 name="GPU 3" top=waste top_h=60 mid=qwen mid_label="Qwen" mid_h=100 layout=column gap=0
+  }
+  title "Node 4x V100 (32G)" .title shape=none
+  group after "Shared with Isolation                          Available" layout=row gap=0 {
+    use gpu a0 name="GPU 0" top=qwen top_label="Qwen" top_h=100 mid=torch mid_label="Pytorch" mid_h=60 layout=column gap=0
+    use gpu a1 name="GPU 1" top=qwen top_label="Qwen" top_h=100 mid=torch mid_label="Pytorch" mid_h=60 layout=column gap=0
+    use idle a2 name="GPU 2" layout=column gap=0
+    use idle a3 name="GPU 3" layout=column gap=0
+  }
+}
+
+users -> after "With HAMi" .hami exit=right enter=left

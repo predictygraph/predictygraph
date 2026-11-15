@@ -57,6 +57,26 @@ def measure(text: str, family: str, size: float, bold: bool = False) -> tuple[fl
     return w, line_h * len(lines), lines
 
 
+def load_icon(name: str, st: dict) -> dict:
+    """`icon=user`: a Lucide icon (needs `predictygraph[icons]`), coloured like the node:
+    `fill` fills it, `stroke`/`stroke-width` draw it (Lucide's 24 px grid)."""
+    try:
+        from lucide import lucide_icon
+    except ImportError as exc:
+        raise ValueError("icon= needs the Lucide icons: pip install 'predictygraph[icons]'") from exc
+    if not re.fullmatch(r"[a-z0-9-]{1,64}", name):
+        raise ValueError(f"bad icon name {name!r}")
+    svg = lucide_icon(
+        name,
+        fill=st.get("fill", "none"),
+        stroke=st.get("stroke", "currentColor"),
+        stroke_width=st.get("stroke-width", "1.5").removesuffix("px"),
+    )
+    if "data-missing-icon" in svg:
+        raise ValueError(f"unknown Lucide icon {name!r}")
+    return {"href": f"data:image/svg+xml;base64,{base64.b64encode(svg.encode()).decode()}", "w": 24.0, "h": 24.0}
+
+
 def load_image(path: str, base_dir: str, allow_outside: bool = False) -> dict:
     p = safe_path(base_dir, path, allow_outside)
     data = p.read_bytes()

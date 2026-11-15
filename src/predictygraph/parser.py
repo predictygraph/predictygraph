@@ -387,9 +387,10 @@ class Parser:
                 raise PdgSyntaxError(f"unclosed def {name!r}", lineno)
             ln, text = lines[i]
             s = strip_comment(text).strip()
+            counted = VAR_RE.sub("v", s)  # `$NAME` is only substituted at `use` time
             depth += sum(
                 1 if t == ("punct", "{") else -1 if t == ("punct", "}") else 0
-                for t in (tokenize(s, ln) if s and not s.startswith("css") else [])
+                for t in (tokenize(counted, ln) if s and not s.startswith("css") else [])
             )
             if s.startswith("css") and "{" in s:
                 depth += s.count("{") - s.count("}")

@@ -12,7 +12,7 @@ from collections import defaultdict
 from .model import Document, Group, Item, Node
 from .style import box4, px
 from .styleutil import has_title_band, node_padding, text_block, title_position
-from .text import load_image
+from .text import load_icon, load_image
 
 SUB_GAP = 3.0  # px between a label and its `sub=` lines
 
@@ -26,8 +26,12 @@ def size_node(n: Node, doc: Document) -> None:
     n.text_w, n.text_h = max(n.text_w, sw), n.text_h + n.sub_h  # text_h covers label + sub
     pt, pr, pb, pl = node_padding(st)
     shape = n.attrs.get("shape")
-    if "image" in n.attrs:
-        img = load_image(n.attrs["image"], doc.base_dir, doc.allow_outside)
+    if "image" in n.attrs or "icon" in n.attrs:
+        if "icon" in n.attrs:
+            img = load_icon(n.attrs["icon"], st)
+            img["w"] = img["h"] = 48.0  # Lucide's 24 px grid, drawn at 2x by default
+        else:
+            img = load_image(n.attrs["image"], doc.base_dir, doc.allow_outside)
         iw, ih = img["w"], img["h"]
         if "img-width" in n.attrs or "img-height" in n.attrs:
             tw, th = max(0.0, px(n.attrs.get("img-width"), 0)), max(0.0, px(n.attrs.get("img-height"), 0))

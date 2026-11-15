@@ -159,6 +159,9 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
 - `image=path.svg|path.png` — makes the node an image leaf. Default `shape=image`
   (no box, label below). With an explicit shape the image sits inside the box above the label.
 - `img-width=48 img-height=48` — image size (defaults: intrinsic, max 96px).
+- `icon=user` — a [Lucide](https://lucide.dev/icons) icon instead of an image file
+  (needs `pip install 'predictygraph[icons]'`). It takes the node's `fill`, `stroke` and
+  `stroke-width`; default size 48px, change it with `img-width`/`img-height`.
 - `width=W height=H` — minimum size.
 - `at=x,y` — position, only honoured by `layout=fixed`.
 - `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.
@@ -303,6 +306,15 @@ complete diagram, so static renderers (rsvg, cairosvg, WeasyPrint, PDF) stay cor
 `grid=40` on the `graph` line (or `graph { grid: 40; grid-color: #223; }`) draws a faint
 background grid with that pitch. It is decoration only and never affects layout.
 `corner-marks: 6px` on a node draws short L ticks just outside its four corners (stroke colour).
+
+`hatch: #333` on a node fills it with 45° lines (`/`) between the fill and the outline,
+e.g. reserved but unused memory. `hatch-gap: 10px` (line spacing) and `hatch-width: 1`.
+
+`sketch: 1` gives nodes, groups and edges draw.io's hand-drawn look: each outline is
+redrawn as two slightly wobbly strokes. `roughness: 1.5` sets how much (0 turns it off).
+Set it per element in CSS, or for the whole diagram with `graph sketch=1 roughness=2`.
+The wobble is seeded from the element ID, so a diagram always renders the same way.
+Animated elements are drawn normally. See `examples/hami/with_hami.pdg`.
 
 Without an explicit dash a flow draws round dots over a faint guide line; with a dashed
 body (`..>`, `stroke-dasharray=`) that dash pattern is what moves.

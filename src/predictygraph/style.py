@@ -151,8 +151,15 @@ BOX_KEYS = (
     "accent-side",
     "title-fill",
     "corner-marks",
+    "sketch",
+    "roughness",
+    "hatch",
+    "hatch-gap",
+    "hatch-width",
 )
 EDGE_KEYS = (
+    "sketch",
+    "roughness",
     "arrow",
     "head",
     "head-start",

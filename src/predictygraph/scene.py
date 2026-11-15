@@ -21,6 +21,7 @@ from .ir import Elem, Scene
 from .layout import SUB_GAP
 from .model import Document, Edge, Group, Node
 from .route import Diagonal, Router, flow_dir, lca
+from .sketch import hatch, sketchify
 from .style import box4, px
 from .styleutil import LINE_H, accent, font_size, has_title_band, node_padding, text_block, title_position
 
@@ -302,10 +303,35 @@ class SceneBuilder:
             el.tracks = border_tracks(mode, sw, dash, dur)
         return [el]
 
+    def _sketch_on(self, st: dict) -> bool:
+        return st.get("sketch", self.doc.root.attrs.get("sketch", "0")).strip().lower() in ("1", "true", "yes", "on")
+
+    def sketched(self, elems: list[Elem], st: dict, seed: str) -> list[Elem]:
+        """`sketch: 1` (CSS, attribute or graph line): draw.io's hand-drawn look."""
+        if not self._sketch_on(st):
+            return elems
+        rough = px(st.get("roughness", self.doc.root.attrs.get("roughness")), 1.5)
+        out = []
+        for i, el in enumerate(elems):
+            out += [el] if el.kind == "text" or el.cls == "pdg-hatch" else sketchify(el, f"{seed}:{i}", rough)
+        return out
+
+    def hatched(self, it, st, body: list[Elem]) -> list[Elem]:
+        """`hatch: #333`: diagonal lines between the fill and the outline (reserved, unused)."""
+        color = st.get("hatch", "none").strip()
+        if color in ("none", "") or not body:
+            return body
+        lines = hatch(it.ax, it.ay, it.w, it.h, color, px(st.get("hatch-gap"), 10), px(st.get("hatch-width"), 1))
+        first = body[0]
+        fill = Elem(first.kind, cls=first.cls, geom=first.geom, paint={**first.paint, "stroke": "none"})
+        line = {k: v for k, v in first.paint.items() if k != "filter"} | {"fill": "none"}
+        return [fill, lines, Elem(first.kind, cls=first.cls, geom=first.geom, paint=line, tracks=first.tracks), *body[1:]]
+
     def node(self, n: Node) -> Elem:
         st = n.style
         shape = n.attrs.get("shape", "box")
-        out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.shape(n, shape, st))
+        body = self.hatched(n, st, self.shape(n, shape, st))
+        out = Elem("group", id=n.id, cls=" ".join(["pdg-node"] + n.classes), children=self.sketched(body, st, n.id))
         out.children += self.accent(n, st) + self.corner_marks(n, st)
         fs = font_size(st, 14)
         if n.image:
@@ -357,7 +383,7 @@ class SceneBuilder:
             cls=" ".join(["pdg-group"] + g.classes),
             children=self.shape(self._frame(g, st), g.attrs.get("shape", "box"), st),
         )
-        out.children += self.accent(g, st)
+        out.children = self.sketched(out.children, st, g.id) + self.accent(g, st)
         if g.label and title_position(st) == "left":
             out.children.append(self._side_title(g, st))
         elif g.label:
@@ -601,8 +627,15 @@ class SceneBuilder:
                             tracks=tracks,
                         )
                     )
-        for kind, tip, dvec in heads:
-            out.children.append(self.head(kind, tip, dvec, hl, color, width, self.doc.root.style.get("background", "#ffffff")))
+        out.children = self.sketched(out.children, st, e.id)
+        bg = self.doc.root.style.get("background", "#ffffff")
+        hs = [self.head(kind, tip, dvec, hl, color, width, bg) for kind, tip, dvec in heads]
+        if self._sketch_on(st):  # outline filled heads so their edges wobble too
+            for h in hs:
+                if h.kind == "polygon" and h.paint.get("stroke", "none") == "none":
+                    h.paint.update({"stroke": color, "stroke-width": width * 0.6})
+            hs = self.sketched(hs, st, e.id + ":head")
+        out.children += hs
         if e.label:
             lab = self.edge_label(e, self.edge_polys[e.id])
             out.children += lab

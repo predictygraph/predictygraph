@@ -14,6 +14,7 @@ license = {text = "Apache-2.0"}
 
 [project.optional-dependencies]
 apng = ["cairosvg>=2.7"]
+icons = ["python-lucide>=0.5.0"]
 
 [project.scripts]
 predictygraph = "predictygraph.cli:app"
