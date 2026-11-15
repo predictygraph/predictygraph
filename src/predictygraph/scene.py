@@ -24,6 +24,7 @@ from .route import Diagonal, Router, flow_dir, lca
 from .sketch import hatch, sketchify
 from .style import box4, px
 from .styleutil import LINE_H, accent, font_size, has_title_band, node_padding, text_block, title_position
+from .text import load_image
 
 TITLE_PAD = 6.0
 ER_HEADS = ("one", "many", "zero-one", "zero-many", "one-many")
@@ -639,8 +640,10 @@ class SceneBuilder:
         if e.label:
             lab = self.edge_label(e, self.edge_polys[e.id])
             out.children += lab
+        if e.attrs.get("image"):
+            out.children.append(self.edge_image(e, self.edge_polys[e.id]))
         if e.attrs.get("step"):
-            box = lab[0].geom if e.label else None
+            box = lab[0].geom if e.label and lab[0].cls == "pdg-label-bg" else None
             out.children += self.step_badge(e, self.edge_polys[e.id], box)
         return out
 
@@ -772,6 +775,21 @@ class SceneBuilder:
         tag, pts, paint = shapes.get(kind, ("polygon", [P(0, 0), P(hl, hw), P(hl, -hw)], {"fill": color}))
         return Elem(tag, cls="pdg-head", geom={"points": pts}, paint=paint)
 
+    def edge_image(self, e, poly) -> Elem:
+        """`image=logo.png` on an edge: beside the middle of its longest run (right of a
+        vertical run, below a horizontal one), like a badge on a draw.io connector."""
+        img = load_image(e.attrs["image"], self.doc.base_dir, self.doc.allow_outside)
+        w = px(e.attrs.get("img-width"), 0) or min(img["w"], 48.0)
+        h = px(e.attrs.get("img-height"), 0) or w * img["h"] / (img["w"] or 1)
+        (ax, ay), (bx, by) = max(zip(poly, poly[1:]), key=lambda s: math.dist(*s))
+        mx, my = (ax + bx) / 2, (ay + by) / 2
+        gap = 8.0
+        if abs(bx - ax) < abs(by - ay):
+            x, y = mx + gap, my - h / 2
+        else:
+            x, y = mx - w / 2, my + gap
+        return Elem("image", cls="pdg-edge-image", geom={"x": x, "y": y, "w": w, "h": h, "href": img["href"]})
+
     def edge_label(self, e, poly) -> list[Elem]:
         st = e.label_style or e.style
         fs = font_size(st, 11)
@@ -781,6 +799,13 @@ class SceneBuilder:
         segs = list(zip(poly, poly[1:]))
         fits = len(segs) > 1 and math.dist(*segs[-1]) >= h + 4
         best = segs[-1] if fits else max(segs, key=lambda s: math.dist(*s))
+        at = e.attrs.get("label-at", "")
+        if at in ("start", "end") and len(segs) > 1:  # sit above that run, clear of the line
+            (ax, ay), (bx, by) = segs[0] if at == "start" else segs[-1]
+            if abs(by - ay) < 0.5:
+                mx = max((ax + bx) / 2, min(ax, bx) + w / 2 + 4)  # never back over the source
+                return self.text(lines, mx, ay - h - 6, fs, st)
+            best = segs[0] if at == "start" else segs[-1]
         (ax, ay), (bx, by) = best
         t = 0.5
         lvl = (

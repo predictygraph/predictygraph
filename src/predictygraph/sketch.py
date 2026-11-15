@@ -50,12 +50,15 @@ def flatten(segs) -> list[list[Pt]]:
 
 
 def _simplify(poly: list[Pt]) -> list[Pt]:
-    """Merge nearly collinear points so a sampled curve wobbles as a few strokes, not many."""
+    """Merge nearly straight points so a sampled curve wobbles as a few strokes, not many.
+    A point is kept once the path turns more than ~15° there, so corners survive."""
     out = [poly[0]]
     for i in range(1, len(poly) - 1):
         a, b, c = out[-1], poly[i], poly[i + 1]
-        cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-        if abs(cross) > 0.04 * (math.dist(a, c) ** 2) or math.dist(a, b) > 160:
+        h1 = math.atan2(b[1] - a[1], b[0] - a[0])
+        h2 = math.atan2(c[1] - b[1], c[0] - b[0])
+        turn = abs((h2 - h1 + math.pi) % (2 * math.pi) - math.pi)
+        if turn > 0.26 or math.dist(a, b) > 160:
             out.append(b)
     out.append(poly[-1])
     return out
@@ -73,7 +76,7 @@ def rough_segs(polys: list[list[Pt]], rng: random.Random, roughness: float) -> l
             L = math.dist(a, b)
             if L < 0.5:
                 continue
-            r = roughness * (1 + min(L, 400) / 50)  # long strokes bow more, like rough.js
+            r = roughness * (1 + min(L, 300) / 150)  # long strokes bow a little more, like rough.js
             nx, ny = (a[1] - b[1]) / L, (b[0] - a[0]) / L  # unit normal
             c1, c2 = rng.uniform(-r, r), rng.uniform(-r, r)
             p1 = (a[0] + (b[0] - a[0]) * 0.35 + nx * c1, a[1] + (b[1] - a[1]) * 0.35 + ny * c1)

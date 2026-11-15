@@ -319,6 +319,9 @@ dependencies = [
 apng = [
     { name = "cairosvg" },
 ]
+icons = [
+    { name = "python-lucide" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -329,10 +332,11 @@ dev = [
 requires-dist = [
     { name = "cairosvg", marker = "extra == 'apng'", specifier = ">=2.7" },
     { name = "pillow", specifier = ">=11.0.0" },
+    { name = "python-lucide", marker = "extra == 'icons'", specifier = ">=0.5.0" },
     { name = "tinycss2", specifier = ">=1.5.1" },
     { name = "typer", specifier = ">=0.26.8" },
 ]
-provides-extras = ["apng"]
+provides-extras = ["apng", "icons"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.1" }]
@@ -369,6 +373,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedeac2ec51abc1f8cae4fee4ec63899a0999016229a0f2a/pytest-9.2.0.tar.gz", hash = "sha256:97c4f3b1f3c7414aa36465e09b8220f1d03627993bd51b1282e193753c80557b", size = 1797555, upload-time = "2026-10-27T21:30:20.728Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
+]
+
+[[package]]
+name = "python-lucide"
+version = "0.5.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/ad/982f9670c973c74c84fae1d5fb9ac3cf0214ce54a4934748cc6715f063a2/python_lucide-0.5.12.tar.gz", hash = "sha256:6c75d98a7fe1429b066bd20f0f541efd07216bfc544c00736cd08c0aaab0d90e", size = 550254, upload-time = "2026-11-09T16:45:31.826Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/e0/1f7474bd08483ed626864e58cb9ed61c30dba46acbe52793a78c4c435264/python_lucide-0.5.12-py3-none-any.whl", hash = "sha256:ba916888d25b955575599943146f2fa8f05c25d1c92acb1f2eb7b17a77b1e61c", size = 781550, upload-time = "2026-11-09T16:45:30.21Z" },
 ]
 
 [[package]]

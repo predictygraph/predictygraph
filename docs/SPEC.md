@@ -162,6 +162,10 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
 - `icon=user` — a [Lucide](https://lucide.dev/icons) icon instead of an image file
   (needs `pip install 'predictygraph[icons]'`). It takes the node's `fill`, `stroke` and
   `stroke-width`; default size 48px, change it with `img-width`/`img-height`.
+- On an edge, `image=logo.png img-width=48` places a badge beside the middle of the
+  edge's longest run (below a horizontal run, right of a vertical one).
+- `label-at=start|end` on a bent edge puts the label over its first or last horizontal
+  run, with no background patch (draw.io style). Default: the run into the target.
 - `width=W height=H` — minimum size.
 - `at=x,y` — position, only honoured by `layout=fixed`.
 - `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.

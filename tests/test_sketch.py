@@ -61,3 +61,25 @@ def test_unknown_lucide_icon_is_an_error():
 def test_def_class_from_variable():
     svg = render('css { .w { fill: #abcdef; } }\ndef g c=x {\n  t "" .$c\n}\nuse g k c=w')
     assert 'class="pdg-node w"' in svg
+
+
+def test_edge_image(tmp_path):
+    from PIL import Image
+
+    Image.new("RGBA", (10, 10), "green").save(tmp_path / "logo.png")
+    (tmp_path / "d.pdg").write_text("a -> b image=logo.png img-width=20")
+    svg = render((tmp_path / "d.pdg").read_text(), base_dir=str(tmp_path))
+    edge = svg.split('<g id="e0"', 1)[1].split("</g>", 1)[0]
+    assert 'class="pdg-edge-image"' in edge and 'width="20"' in edge
+
+
+def test_sketch_keeps_corners():
+    svg = render("graph route=ortho\na\nb at=0,0\na -> b exit=right enter=top sketch=1 roughness=0.01")
+    edge = svg.split('<g id="e0"', 1)[1].split("</g>", 1)[0]
+    assert edge.count(" C ") >= 4  # two passes x at least two runs
+
+
+def test_label_at_start_has_no_background():
+    svg = render('graph route=ortho\na\nb\na -> b "x" exit=right enter=top label-at=start')
+    edge = svg.split('<g id="e0"', 1)[1].split("</g>", 1)[0]
+    assert "pdg-label-bg" not in edge and ">x<" in edge
