@@ -28,7 +28,14 @@ File extension: `.pdg`. Encoding: UTF-8.
 - Identifiers: `[A-Za-z_][A-Za-z0-9_-]*` (case-sensitive).
 - Classes: `.name` — attach CSS classes.
 - Attributes: `key=value` where value is an identifier, number, string, or `x,y`.
-- Statements end at newline. `{` opens a block, `}` closes it (own line or end of line).
+  No spaces around `=` (only `let NAME = VALUE` allows them).
+- Statements end at newline or `;`. `{` opens a block, `}` closes it (own line or end of line).
+- Keywords (`graph css default group let def use bracket legend node edge`) only count
+  at the start of a statement; elsewhere they are ordinary IDs (`group node { ... }`).
+
+Editor grammars that follow this section:
+[tree-sitter-pdg](https://github.com/predictygraph/tree-sitter-pdg) and
+[lezer-pdg](https://github.com/predictygraph/lezer-pdg) (CodeMirror 6).
 
 ## 2. Statements
 
@@ -44,6 +51,9 @@ A, B ARROW C, D                    # fan-out/fan-in (cartesian product)
 group ID ["Label"] [.class...] [attrs] {   # container with its own layout
   ...statements...
 }
+bracket A[, B...] ["note"] [.class...] [attrs]   # side bracket (top level, see 4.1)
+legend "Key"                                     # legend title (top level)
+legend .class... ["Label"] [attrs]               # legend entry (top level)
 ```
 
 Nodes referenced in an edge but never declared are created implicitly in the
