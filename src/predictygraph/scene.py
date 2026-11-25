@@ -541,7 +541,7 @@ class SceneBuilder:
             stub += hl
         radius = px(st.get("radius"), 12 if route == "bend" else 6)
         diag = Diagonal.from_style(st, route)
-        level = R.level(e)
+        level = R.curve_level.get(e.id) if route == "curve" else R.level(e)
         segs = R.path_segs(pts, axis, route, radius, stub, level, diag)
         self.edge_polys[e.id] = R.polyline(pts, axis, route, radius, stub, level, diag)
 

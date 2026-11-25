@@ -151,6 +151,8 @@ Per-edge attributes override arrow defaults:
 Automatic routing rules (layered layouts):
 - Edges between the same two nodes are offset in parallel; `A <-> B` draws one double-headed edge.
 - Ortho edges sharing a target (fan-in) or source (fan-out) turn at one common level, forming a bus.
+- Curved edges sharing a side of a node (fan-out or fan-in) swing at one common level, so a fan
+  to targets at different distances does not cross itself.
 - Rectangular nodes that overlap on the cross axis are joined by a single straight line (no jog).
 - `weight=N` — how strongly a layered layout keeps the edge short/straight (default 1)
 - `constraint=false` — the edge is drawn but ignored by layout

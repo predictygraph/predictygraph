@@ -170,6 +170,7 @@ class Router:
         self.offset: dict[str, float] = {}
         self.port_shift: dict[tuple[str, int], float] = {}
         self.bend_level: dict[str, float] = {}
+        self.curve_level: dict[str, float] = {}
         self.channel: dict[str, tuple[float, float]] = {}
         self.gapkey: dict[str, tuple[str, int]] = {}
         self.needs: dict[tuple[str, int], float] = {}
@@ -178,6 +179,7 @@ class Router:
         self._parallel_offsets()
         self._spread_ports()
         self._shared_bends()
+        self._shared_curves()
         self._separate_channels()
         return self
 
@@ -238,6 +240,37 @@ class Router:
             lst.sort()
             for k, (_, eid, end, _sp) in enumerate(lst):
                 self.port_shift[(eid, end)] = (k - (len(lst) - 1) / 2) * step
+
+    def _shared_curves(self):
+        """Curved fan-out/fan-in on one side of a node: the S-curves would each swing at
+        their own midpoint, and targets at different distances make those swings cross
+        although the ports are ordered. They all swing at one common level instead."""
+        geo = {}
+        for e in self.doc.edges:
+            if e.style.get("route", "curve") != "curve" or spread(e) or e.waypoints or e.attrs.get("exit") or e.attrs.get("enter"):
+                continue
+            pts, axis = self.geometry(e)
+            if axis in ("v", "h") and len(pts) == 2:
+                geo[e.id] = (pts, axis)
+        for key in ("src", "dst"):
+            buckets: dict[tuple, list] = {}
+            for e in self.doc.edges:
+                if e.id not in geo or e.id in self.curve_level:
+                    continue
+                pts, axis = geo[e.id]
+                i = 1 if axis == "v" else 0
+                sign = (pts[1][i] > pts[0][i]) - (pts[1][i] < pts[0][i])
+                buckets.setdefault((getattr(e, key), axis, sign), []).append(e)
+            for es in buckets.values():
+                if len(es) < 2:
+                    continue
+                i = 1 if geo[es[0].id][1] == "v" else 0
+                end, other = (0, 1) if key == "src" else (1, 0)
+                hub = sum(geo[e.id][0][end][i] for e in es) / len(es)
+                nearest = min((geo[e.id][0][other][i] for e in es), key=lambda f: abs(f - hub))
+                level = hub + (nearest - hub) / 2
+                for e in es:
+                    self.curve_level[e.id] = level
 
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
@@ -506,10 +539,15 @@ class Router:
             return rounded(list(pts), 0)
         if route in ("bend", "ortho"):
             return rounded(self.polyline(pts, axis, route, radius, stub, mid, diag), radius)
-        # curve: cubic beziers with tangents along the flow axis
+        # curve: cubic beziers with tangents along the flow axis; a fan swings at one level
         segs = [("M", *pts[0])]
         for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
-            if axis == "v":
+            if mid is not None and len(pts) == 2:
+                if axis == "v":
+                    segs.append(("C", x0, mid, x1, mid, x1, y1))
+                else:
+                    segs.append(("C", mid, y0, mid, y1, x1, y1))
+            elif axis == "v":
                 k = (y1 - y0) / 2
                 segs.append(("C", x0, y0 + k, x1, y1 - k, x1, y1))
             else:

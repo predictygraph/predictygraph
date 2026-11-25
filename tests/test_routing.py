@@ -59,3 +59,64 @@ def test_shifted_ports_sit_on_the_circle():
         for n, p in ((doc.items[e.src], pts[0]), (doc.items[e.dst], pts[-1])):
             d = ((p[0] - n.cx) / (n.w / 2)) ** 2 + ((p[1] - n.cy) / (n.h / 2)) ** 2
             assert abs(d - 1) < 0.02, f"{e.src}->{e.dst} end is off the outline of {n.id}"
+
+
+FAN = """graph dir=LR
+group site layout=column gap=12 {
+  g "GPU servers" shape=box
+}
+api "Sovereign API" shape=box
+group sys layout=column gap=12 {
+  idp "Login" shape=box
+  bill "Billing and ERP integration" shape=box
+  ui "Portal for everyone" shape=box
+}
+api -> idp
+api -> bill
+api -> ui
+g -> api
+"""
+
+
+def _curve_points(segs, n=40):
+    pts, cur = [], None
+    for s in segs:
+        if s[0] == "M":
+            cur = s[1:3]
+            pts.append(cur)
+        elif s[0] == "C":
+            (x0, y0), (x1, y1, x2, y2, x3, y3) = cur, s[1:]
+            for i in range(1, n + 1):
+                t = i / n
+                u = 1 - t
+                pts.append((u**3 * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t**3 * x3, u**3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t**3 * y3))
+            cur = (x3, y3)
+    return pts
+
+
+def _crosses(a, b):
+    def ccw(p, q, r):
+        return (r[1] - p[1]) * (q[0] - p[0]) - (q[1] - p[1]) * (r[0] - p[0])
+
+    for p, q in zip(a, a[1:]):
+        for r, s in zip(b, b[1:]):
+            if ccw(p, r, s) * ccw(q, r, s) < 0 and ccw(p, q, r) * ccw(p, q, s) < 0:
+                return True
+    return False
+
+
+def test_curved_fan_out_to_targets_at_different_distances_does_not_cross():
+    """Targets of different widths put their ports at different x; each S-curve used to
+    swing at its own midpoint, so the fan crossed although the source ports were ordered."""
+    doc = _style(parse(FAN), None, None, None)
+    layout(doc)
+    r = Router(doc).route()
+    paths = []
+    for e in doc.edges:
+        if e.src == "api":
+            pts, axis = r.geometry(e)
+            paths.append(_curve_points(r.path_segs(pts, axis, "curve", 6, None, r.curve_level.get(e.id), None)))
+    assert len(paths) == 3
+    for i in range(3):
+        for j in range(i + 1, 3):
+            assert not _crosses(paths[i], paths[j])
