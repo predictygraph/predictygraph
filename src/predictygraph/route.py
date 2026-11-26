@@ -202,18 +202,20 @@ class Router:
         fan gives up the straight shortcut, so all of it merges into one bus instead."""
         fans: dict[tuple[str, str], list[Edge]] = {}
         for e in self.doc.edges:
-            if e.style.get("route", "curve") == "ortho" and not spread(e) and not e.waypoints:
+            if bus_edge(e) and not e.waypoints:
                 fans.setdefault(("s", e.src), []).append(e)
                 fans.setdefault(("d", e.dst), []).append(e)
         for es in fans.values():
             if len(es) < 2:
                 continue
-            geo = {e.id: self.geometry(e) for e in es}
-            if len({a for _, a in geo.values()}) != 1 or next(iter(geo.values()))[1] not in ("v", "h"):
+            geo = [self.geometry(e) for e in es]
+            axes = {a for _, a in geo}
+            if len(axes) != 1 or not axes <= {"v", "h"}:
                 continue
-            i = 0 if next(iter(geo.values()))[1] == "v" else 1  # cross-axis coordinate
-            straight = [p[0][i] for p, _ in geo.values() if len(p) == 2 and abs(p[0][i] - p[1][i]) < 0.5]
-            bent = [(min(p[0][i], p[-1][i]), max(p[0][i], p[-1][i])) for p, _ in geo.values() if abs(p[0][i] - p[-1][i]) >= 0.5]
+            i = 0 if axes == {"v"} else 1  # cross-axis coordinate
+            ends = [(p[0][i], p[-1][i], len(p)) for p, _ in geo]
+            straight = [a for a, b, n in ends if n == 2 and abs(a - b) < 0.5]
+            bent = [(min(a, b), max(a, b)) for a, b, _ in ends if abs(a - b) >= 0.5]
             if any(lo + 0.5 < c < hi - 0.5 for c in straight for lo, hi in bent):
                 self.fanned.update(e.id for e in es)
 
@@ -309,7 +311,7 @@ class Router:
     def _shared_bends(self):
         """Ortho fan-in/fan-out: edges sharing a target (or source) turn at one common
         level, so they merge into a single bus line (class-diagram style)."""
-        geo = {e.id: self.geometry(e) for e in self.doc.edges if e.style.get("route", "curve") == "ortho" and not spread(e)}
+        geo = {e.id: self.geometry(e) for e in self.doc.edges if bus_edge(e)}
         for key in ("dst", "src"):
             buckets: dict[str, list] = {}
             for e in self.doc.edges:
@@ -630,6 +632,11 @@ def straighten(doc: Document, router: Router) -> bool:
 
 def spread(e: Edge) -> bool:
     return e.style.get("fan", "").strip() == "spread"
+
+
+def bus_edge(e: Edge) -> bool:
+    """An ortho edge that may merge into a fan-in/fan-out bus."""
+    return e.style.get("route", "curve") == "ortho" and not spread(e)
 
 
 def bump(g: Group, attr: str, key: int, by: float) -> None:

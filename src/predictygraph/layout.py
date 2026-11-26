@@ -71,7 +71,7 @@ def size_node(n: Node, doc: Document) -> None:
             n.h += 12
     n.attrs["shape"] = shape
     # width=/height= on the line, or CSS width/height: a minimum size like min-width
-    explicit = (px(n.attrs.get("width", st.get("width")), 0), px(n.attrs.get("height", st.get("height")), 0))
+    explicit = (set_size(n, "width"), set_size(n, "height"))
     mins = (0.0, 0.0) if shape in ("circle", "square") and not n.text_lines else (px(st.get("min-width"), 0), px(st.get("min-height"), 0))
     n.w, n.h = max(n.w, mins[0], explicit[0]), max(n.h, mins[1], explicit[1])
     if shape in ("circle", "square"):
@@ -112,6 +112,11 @@ class Layout:
         raise NotImplementedError
 
 
+def set_size(item: Item, dim: str) -> float:
+    """width=/height= on the line, else CSS width/height; 0 when unset."""
+    return px(item.attrs.get(dim, item.style.get(dim)), 0)
+
+
 def fill_line(g: Group, extra: float, horizontal: bool = True) -> bool:
     """`justify=fill` on a row/column: hand `extra` space along its main axis to the
     children, smallest first, so they end up as equal as the space allows (later ones
@@ -128,15 +133,12 @@ def fill_line(g: Group, extra: float, horizontal: bool = True) -> bool:
         level = (sum(asc[:n]) + extra) / n
         if n == len(asc) or level <= asc[n]:
             break
+    pos, size = ("x", "w") if horizontal else ("y", "h")
     shift = 0.0
     for k, s in zip(g.children, sizes):
         grow = max(level - s, 0.0)
-        if horizontal:
-            k.x += shift
-            k.w += grow
-        else:
-            k.y += shift
-            k.h += grow
+        setattr(k, pos, getattr(k, pos) + shift)
+        setattr(k, size, s + grow)
         shift += grow
         if isinstance(k, Group):
             fill_line(k, grow, horizontal)
@@ -608,8 +610,8 @@ def layout_group(g: Group, doc: Document) -> None:
     g.w = inner_w + pl + pr + g.side_w
     g.h = ch + pt + pb + g.label_h
     # width=/height= (or CSS width/min-width) set a minimum box size; content stays centred
-    mw = max(px(g.attrs.get("width"), 0), px(g.style.get("width"), 0), px(g.style.get("min-width"), 0))
-    mh = max(px(g.attrs.get("height"), 0), px(g.style.get("height"), 0), px(g.style.get("min-height"), 0))
+    mw = max(set_size(g, "width"), px(g.style.get("min-width"), 0))
+    mh = max(set_size(g, "height"), px(g.style.get("min-height"), 0))
     if mw > g.w:
         grow, g.w = mw - g.w, mw
         if not fill_line(g, grow):

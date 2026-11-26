@@ -214,6 +214,11 @@ def number_steps(doc: Document) -> None:
         e.attrs["step"] = str(n)
 
 
+def box_attrs(item) -> dict[str, str]:
+    """Box attributes written on the line (padding=0, fill=...): they win over CSS."""
+    return {k: v for k, v in item.attrs.items() if k in BOX_KEYS}
+
+
 def apply_styles(doc: Document, target: str | None = None) -> None:
     sheet = StyleSheet(target)
     sheet.add(BUILTIN)
@@ -222,7 +227,7 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
     root = doc.root
     number_steps(doc)
     # box attributes on the graph line (padding=0, fill=...) win over CSS, like on any item
-    root.style = sheet.resolve_vars({**sheet.compute(root, []), **{k: v for k, v in root.attrs.items() if k in BOX_KEYS}})
+    root.style = sheet.resolve_vars({**sheet.compute(root, []), **box_attrs(root)})
     root.part_styles = {k: part_style(sheet, k, root, [], root.style) for k in ("caption", "legend")}
     for b in doc.brackets:
         b.style = sheet.resolve_vars({"font-family": root.style.get("font-family", "sans-serif"), **sheet.compute(b, [root])})
@@ -232,7 +237,7 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
         parent = item.parent.style if item.parent else root.style
         st = {k: parent[k] for k in ("font-family",) if k in parent}
         st.update(sheet.compute(item, anc))
-        st.update({k: v for k, v in item.attrs.items() if k in BOX_KEYS})
+        st.update(box_attrs(item))
         item.style = sheet.resolve_vars(st)
         if "sub" in item.attrs:
             item.sub_style = part_style(sheet, "sub", item, anc, item.style)
