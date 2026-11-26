@@ -107,3 +107,24 @@ NARROW = (
 def test_straight_edge_runs_through_the_narrower_box_centre():
     x = float(re.search(r' d="M ([\d.]+)', render(NARROW, t=0))[1])
     assert abs(x - _item(_doc(NARROW), "n").cx) < 0.5
+
+
+EM = """graph
+css {
+  graph { font-size: 20px; }
+  group { font-size: 0.5em; }
+  node.big { font-size: 1.5em; }
+  edge { font-size: 75%; }
+}
+group g "G" { a "plain"; b "big" .big }
+a -> b "label"
+"""
+
+
+def test_nodes_take_the_graph_font_size_and_em_is_relative_to_it():
+    doc = _doc(EM)
+    g, a, b = _item(doc, "g"), _item(doc, "a"), _item(doc, "b")
+    assert a.style["font-size"] == "20.0px"  # the graph's size, not the group title's 10px
+    assert b.style["font-size"] == "30.00px"
+    assert g.style["font-size"] == "10.00px"
+    assert doc.edges[0].style["font-size"] == "15.00px"

@@ -194,12 +194,19 @@ def part_style(sheet: StyleSheet, kind: str, owner, anc: list, inherit: dict) ->
     `em`/`%` font sizes are relative to the owner's size."""
     base = {k: inherit[k] for k in TEXT_KEYS if k in inherit and not (kind == "sub" and k == "font-weight")}
     st = sheet.resolve_vars({**base, **sheet.compute(_Part(kind, list(owner.classes)), [owner] + anc)})
-    fs = st.get("font-size", "").strip()
-    if fs.endswith("em"):
-        st["font-size"] = f"{px(inherit.get('font-size'), 14) * number(fs[:-2], 1, 0.1, 10):.2f}px"
-    elif fs.endswith("%"):
-        st["font-size"] = f"{px(inherit.get('font-size'), 14) * number(fs[:-1], 100, 10, 1000) / 100:.2f}px"
+    if "font-size" in st:
+        st["font-size"] = rel_size(st["font-size"], px(inherit.get("font-size"), 14))
     return st
+
+
+def rel_size(fs: str, base: float) -> str:
+    """`em`/`%` font size -> px against `base`; any other value unchanged."""
+    fs = fs.strip()
+    if fs.endswith("em"):
+        return f"{base * number(fs[:-2], 1, 0.1, 10):.2f}px"
+    if fs.endswith("%"):
+        return f"{base * number(fs[:-1], 100, 10, 1000) / 100:.2f}px"
+    return fs
 
 
 def number_steps(doc: Document) -> None:
@@ -232,13 +239,21 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
     for b in doc.brackets:
         b.style = sheet.resolve_vars({"font-family": root.style.get("font-family", "sans-serif"), **sheet.compute(b, [root])})
 
+    # diagram font sizes: a node without one takes the graph's; `em`/`%` on nodes, groups
+    # and edges are relative to the graph's size (like CSS rem: a group's own size is its
+    # title size, so nesting would shrink everything inside a group)
+    base = px(rel_size(root.style.get("font-size", "14px"), 14), 14)
     for item in [*doc.walk(), *doc.legend]:
         anc = item.ancestors()  # nearest first; root last
         parent = item.parent.style if item.parent else root.style
         st = {k: parent[k] for k in ("font-family",) if k in parent}
+        if item.kind == "node":
+            st["font-size"] = f"{base}px"
         st.update(sheet.compute(item, anc))
         st.update(box_attrs(item))
         item.style = sheet.resolve_vars(st)
+        if "font-size" in item.style:
+            item.style["font-size"] = rel_size(item.style["font-size"], base)
         if "sub" in item.attrs:
             item.sub_style = part_style(sheet, "sub", item, anc, item.style)
     ge = root.attrs
@@ -259,6 +274,8 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
             elif k in EDGE_KEYS or k in ("stroke", "color", "stroke-dasharray", "font-size"):
                 st[k] = v
         e.style = sheet.resolve_vars(st)
+        if "font-size" in e.style:
+            e.style["font-size"] = rel_size(e.style["font-size"], base)
         e.label_style = part_style(sheet, "label", e, anc, e.style)
         if "step" in e.attrs:
             e.step_style = part_style(sheet, "step", e, anc, e.style)

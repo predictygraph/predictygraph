@@ -283,6 +283,12 @@ Supported properties:
 - Box: `fill`, `stroke`, `stroke-width`, `stroke-dasharray`, `border-radius`,
   `padding`, `min-width`, `min-height`, `opacity`, `shadow` (`none|soft`)
 - Text: `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`
+- Font sizes: a node without its own `font-size` takes the graph's (`graph { font-size }`,
+  default 14px). `em` and `%` on nodes, groups and edges are relative to the graph's size,
+  like CSS `rem`: a group's `font-size` is its title size, so it does not shrink the
+  nodes inside it. On text parts (`sub`, `label`, `step`) they are relative to the owner.
+  A host that sets the graph size (decktile: the slide's body size) so scales every
+  diagram's text with one value.
 - Edge: `stroke`, `stroke-width`, `stroke-dasharray`, `arrow`, `head`, `route`
 - Group: everything a node has plus `label-position: top|bottom|above` (`above`: the title sits outside, over the outline)
 - Custom properties `--name: value` and `var(--name)` are supported, so slidr themes
