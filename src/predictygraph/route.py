@@ -59,6 +59,17 @@ def boundary_point(n, tx, ty, shape):
     return cx + dx * t, cy + dy * t
 
 
+def via_port(n, p):
+    """Where a via= path meets node `n` on its way to bend point `p`: straight out of
+    the side facing `p` when `p` lines up with the node, else towards the centre."""
+    x, y = p
+    if n.ax <= x <= n.ax + n.w and not n.ay <= y <= n.ay + n.h:
+        return x, (n.ay if y < n.ay else n.ay + n.h)
+    if n.ay <= y <= n.ay + n.h and not n.ax <= x <= n.ax + n.w:
+        return (n.ax if x < n.ax else n.ax + n.w), y
+    return boundary_point(n, x, y, n.attrs.get("shape", "box"))
+
+
 def port(n, side):
     return {"top": (n.cx, n.ay), "bottom": (n.cx, n.ay + n.h), "left": (n.ax, n.cy), "right": (n.ax + n.w, n.cy)}[side]
 
@@ -436,6 +447,8 @@ class Router:
         d = flow_dir(owner)
         route = e.style.get("route", "curve")
         wps = list(e.waypoints)
+        if e.attrs.get("via") and wps:
+            return [via_port(a, wps[0]), *wps, via_port(b, wps[-1])], "free"
         off = self.offset.get(e.id, 0.0)
         ex, en = e.attrs.get("exit"), e.attrs.get("enter")
         if ex or en:

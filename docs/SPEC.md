@@ -124,6 +124,11 @@ Per-edge attributes override arrow defaults:
     into a straight diagonal.
   - `ortho`: right angles; `radius=` rounds the corners (default 6).
 - `radius=N`, `stub=N` — bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
+- `via="x,y x,y ..."` — fixed bend points (pairs split on spaces or `;`), in the root's
+  `at=` frame. The edge runs straight through them; it leaves and enters a node straight
+  out of the side facing the nearest point when that point lines up with the node (else
+  towards its centre). `radius=` rounds the bends (default: sharp). Works in any layout;
+  the router leaves via edges alone. Edges sharing a bus just repeat its points.
 - `diagonal=N|none|always` — when a bent edge may use one slanted segment instead of a
   right-angle jog. Every `bend`/`ortho` edge is: stub along the flow axis, one jog
   sideways, stub into the target. The jog is diagonal only if the sideways offset is at
@@ -180,6 +185,8 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
   run, with no background patch (draw.io style). Default: the run into the target.
 - `width=W height=H` — minimum size.
 - `at=x,y` — position, only honoured by `layout=fixed`.
+- `layer=back` (or CSS `layer: back`) — draw the node under the edges, like a group.
+  For coloured backgrounds and panels that lines run across.
 - `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.
 - `align-x=ID` — after layout, centre this node or group horizontally on another item,
   even one in a different panel (line a box up with the one it calls below). It only

@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Leaf-spine fabric drawn with fixed positions: via= bend points share one bus line,
+# layer=back panels sit under the lines that cross them.
+graph layout=fixed padding=12
+css {
+  node { font-size: 13px; font-weight: 400; border-radius: 4px; stroke-width: 0; fill: #f2f2f2; }
+  node.panel { fill: #eef5e3; }
+  node.gpu { fill: #76b900; min-width: 0; min-height: 0; padding: 0; }
+  edge { stroke: #8a9197; stroke-width: 1.2; }
+}
+sa "Spine A" at=60,0 width=110 height=28
+sb "Spine B" at=250,0 width=110 height=28
+l1 "Leaf 1" at=0,80 width=120 height=28
+l2 "Leaf 2" at=150,80 width=120 height=28
+l3 "Leaf 3" at=300,80 width=120 height=28
+sa -- l1 via="115,50 60,50"
+sa -- l2 via="115,50 210,50"
+sa -- l3 via="115,50 360,50"
+sb -- l1 via="305,50 60,50"
+sb -- l2 via="305,50 210,50"
+sb -- l3 via="305,50 360,50"
+panel "" .panel at=150,130 width=120 height=70 layer=back
+g1 "" .gpu at=170,160 width=14 height=14
+g2 "" .gpu at=236,160 width=14 height=14
+l2 -- g1 via="210,145 177,145"
+l2 -- g2 via="210,145 243,145"
+g1 -- g2

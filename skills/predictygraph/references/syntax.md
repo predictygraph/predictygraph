@@ -24,12 +24,13 @@ css { ... }  /  css "file.css"    # styles
 
 Arrow attributes: `route=curve|bend|ortho|straight`, `exit=` / `enter=`
 `top|bottom|left|right`, `step=N`, `head=triangle|open|diamond|dot|bar`,
-`flow=forward|reverse|both|auto` (moving dots in SVG).
+`flow=forward|reverse|both|auto` (moving dots in SVG), `via="x,y x,y"` (fixed bend
+points in the root's `at=` frame, straight segments).
 
 ## Box attributes
 
 `sub="second line"`, `shape=box|square|round|pill|circle|ellipse|diamond|hexagon|cylinder|note|none`,
-`image=icon.svg`, `width=` / `height=` (minimum), `align-x=ID` (line up with ID),
+`image=icon.svg`, `width=` / `height=` (minimum), `layer=back` (draw under the edges), `align-x=ID` (line up with ID),
 `rank=N` (layered), `row=R col=C` (grid), `border=pulse|march|glow` (animated outline in SVG).
 
 ## Panel (group) attributes

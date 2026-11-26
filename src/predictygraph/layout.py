@@ -621,6 +621,18 @@ def align_x(doc: Document) -> None:
                 shift(s, dx)
 
 
+def parse_via(spec: str, ox: float = 0.0, oy: float = 0.0) -> list[tuple[float, float]]:
+    """`via="x,y x,y ..."` -> absolute points. Pairs split on spaces or ';'."""
+    pts = []
+    for pair in spec.replace(";", " ").split():
+        try:
+            x, y = (float(v) for v in pair.split(","))
+        except ValueError:
+            raise ValueError(f"via: expected x,y pairs, got {pair!r}") from None
+        pts.append((ox + x, oy + y))
+    return pts
+
+
 def layout(doc: Document) -> None:
     root = doc.root
     for e in doc.edges:  # layout may run again after the router widens gaps
@@ -629,6 +641,9 @@ def layout(doc: Document) -> None:
     layout_group(root, doc)
     absolutize(root, 0, 0)
     align_x(doc)
+    for e in doc.edges:  # via="x,y x,y": fixed bend points in the root's at= frame
+        if e.attrs.get("via"):
+            e.waypoints, e.wp_owner = parse_via(e.attrs["via"], root.ax + root.ox, root.ay + root.oy), root
     for g in [root] + [i for i in doc.walk() if isinstance(i, Group)]:
         lay = getattr(g, "layout_obj", None)
         wps = getattr(lay, "waypoints", None)

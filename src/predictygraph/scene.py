@@ -20,7 +20,7 @@ from .anim import BORDER_MODES, border_tracks, dash_len, draw_tracks, flow_track
 from .ir import Elem, Scene
 from .layout import SUB_GAP
 from .model import Document, Edge, Group, Node
-from .route import Diagonal, Router, flow_dir, lca
+from .route import Diagonal, Router, flow_dir, lca, rounded
 from .sketch import hatch, sketchify
 from .style import box4, px
 from .styleutil import LINE_H, accent, font_size, has_title_band, node_padding, text_block, title_position
@@ -81,6 +81,11 @@ def poly_len(pts) -> float:
     return sum(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5 for (x0, y0), (x1, y1) in zip(pts, pts[1:]))
 
 
+def layer(n) -> str:
+    """`layer=back` (attribute or CSS) draws a node under the edges, like a group."""
+    return n.attrs.get("layer") or n.style.get("layer", "")
+
+
 class SceneBuilder:
     def __init__(self, doc: Document, router: Router):
         self.doc, self.router = doc, router
@@ -94,8 +99,12 @@ class SceneBuilder:
         self.title_layer = Elem("group", cls="pdg-titles")
         groups_layer = Elem("group", cls="pdg-groups", children=[self.group(c) for c in root.children if isinstance(c, Group)])
         edges_layer.children = edge_elems
-        nodes_layer = Elem("group", cls="pdg-nodes", children=[self.node(c) for c in self.doc.walk() if isinstance(c, Node)])
+        nodes = [c for c in self.doc.walk() if isinstance(c, Node)]
+        back = [c for c in nodes if layer(c) == "back"]  # layer=back: under the edges
+        nodes_layer = Elem("group", cls="pdg-nodes", children=[self.node(c) for c in nodes if layer(c) != "back"])
         layers = [groups_layer, edges_layer, nodes_layer]
+        if back:
+            layers.insert(1, Elem("group", cls="pdg-nodes pdg-back", children=[self.node(c) for c in back]))
         grid = self.grid(root)
         if grid:
             layers.insert(0, grid)
@@ -501,7 +510,7 @@ class SceneBuilder:
         st = e.style
         R = self.router
         pts, axis = R.geometry(e)
-        route = st.get("route", "curve")
+        route = "straight" if axis == "free" and e.attrs.get("via") else st.get("route", "curve")
         color = st.get("stroke", "#4b5563")
         width = px(st.get("stroke-width"), 1.5)
         if e.body == "thick" and "width" not in e.attrs:
@@ -543,6 +552,8 @@ class SceneBuilder:
         diag = Diagonal.from_style(st, route)
         level = R.curve_level.get(e.id) if route == "curve" else R.level(e)
         segs = R.path_segs(pts, axis, route, radius, stub, level, diag)
+        if e.attrs.get("via") and "radius" in st:  # via paths are straight; radius= rounds the bends
+            segs = rounded(list(pts), radius)
         self.edge_polys[e.id] = R.polyline(pts, axis, route, radius, stub, level, diag)
 
         cls = " ".join(["pdg-edge"] + e.classes)
