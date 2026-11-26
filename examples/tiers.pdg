@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Reza Jelveh
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Equal tiers without hand-tuned widths: align=stretch makes every tier as wide as the
+# widest, justify=fill shares that width among the cards, .bare groups only line things
+# up, and the fan from "Batch" leaves as one bus.
+graph layout=column align=stretch gap=12 padding=8
+css {
+  group.card { fill: #ffffff; stroke: #d1d5db; text-align: left; }
+  node.gpu { width: 18px; height: 14px; min-width: 0; min-height: 0; padding: 0; fill: #76b900; stroke: none; }
+  node.free { fill: #f3f4f6; stroke: #d1d5db; }
+}
+banner "Upload  >  Decode  >  Label  >  Train  >  Replay  >  Deploy" fill=#a8d729 stroke=none
+group work layout=row gap=36 align=center {
+  b "Batch\n09:00" width=110 height=72
+  group jobs layout=column gap=6 align=start .bare {
+    j1 "Decode & Prep"
+    j2 "Auto-Label"
+    j3 "Train Models"
+    j4 "Replay"
+  }
+}
+group tier layout=row gap=10 justify=fill .bare {
+  group ca "Cluster A" sub="short jobs" .card { group ra layout=row gap=3 .bare { a1 "" .gpu; a2 "" .gpu; a3 "" .gpu .free } }
+  group cb "Cluster B" sub="training" .card { group rb layout=row gap=3 .bare { b1 "" .gpu; b2 "" .gpu .free } }
+  group cc "Cluster C" sub="replay" .card { group rc layout=row gap=3 .bare { c1 "" .gpu .free } }
+}
+b -> j1, j2, j3, j4 route=ortho

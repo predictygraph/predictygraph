@@ -113,23 +113,33 @@ class Layout:
 
 
 def fill_line(g: Group, extra: float, horizontal: bool = True) -> bool:
-    """`justify=fill` on a row/column: share `extra` space along its main axis equally
-    among the children (each grows, later ones shift). `horizontal` says which way g
-    grew; a row fills width, a column height. Returns False when g doesn't fill."""
+    """`justify=fill` on a row/column: hand `extra` space along its main axis to the
+    children, smallest first, so they end up as equal as the space allows (later ones
+    shift). `horizontal` says which way g grew; a row fills width, a column height.
+    Returns False when g doesn't fill."""
     if extra <= 0.01 or opt(g, "justify", "start") != "fill" or not g.children:
         return False
     if opt(g, "layout", "row") != ("row" if horizontal else "column"):
         return False
-    each = extra / len(g.children)
-    for i, k in enumerate(g.children):
+    sizes = [k.w if horizontal else k.h for k in g.children]
+    # water level: the smallest k children are raised to one size, the rest keep theirs
+    asc, level = sorted(sizes), 0.0
+    for n in range(1, len(asc) + 1):
+        level = (sum(asc[:n]) + extra) / n
+        if n == len(asc) or level <= asc[n]:
+            break
+    shift = 0.0
+    for k, s in zip(g.children, sizes):
+        grow = max(level - s, 0.0)
         if horizontal:
-            k.x += i * each
-            k.w += each
+            k.x += shift
+            k.w += grow
         else:
-            k.y += i * each
-            k.h += each
+            k.y += shift
+            k.h += grow
+        shift += grow
         if isinstance(k, Group):
-            fill_line(k, each, horizontal)
+            fill_line(k, grow, horizontal)
     return True
 
 
