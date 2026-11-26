@@ -14,6 +14,8 @@ group { fill: #f3f4f6; stroke: #9ca3af; stroke-width: 1; border-radius: 10px;
         padding: 14px; color: #374151; font-size: 12px; font-weight: bold;
         label-position: top; }
 edge  { stroke: #4b5563; stroke-width: 1.5; color: #374151; font-size: 11px; }
+/* .bare: an invisible helper group (no box, no padding) for lining things up */
+group.bare { fill: none; stroke: none; padding: 0; }
 
 /* Text parts: `sub=` lines, step badges, figure caption, legend box. */
 sub     { color: #6b7280; font-size: 0.85em; }

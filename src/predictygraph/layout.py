@@ -70,7 +70,8 @@ def size_node(n: Node, doc: Document) -> None:
         elif shape == "cylinder":
             n.h += 12
     n.attrs["shape"] = shape
-    explicit = (px(n.attrs.get("width"), 0), px(n.attrs.get("height"), 0))
+    # width=/height= on the line, or CSS width/height: a minimum size like min-width
+    explicit = (px(n.attrs.get("width", st.get("width")), 0), px(n.attrs.get("height", st.get("height")), 0))
     mins = (0.0, 0.0) if shape in ("circle", "square") and not n.text_lines else (px(st.get("min-width"), 0), px(st.get("min-height"), 0))
     n.w, n.h = max(n.w, mins[0], explicit[0]), max(n.h, mins[1], explicit[1])
     if shape in ("circle", "square"):
@@ -111,6 +112,27 @@ class Layout:
         raise NotImplementedError
 
 
+def fill_line(g: Group, extra: float, horizontal: bool = True) -> bool:
+    """`justify=fill` on a row/column: share `extra` space along its main axis equally
+    among the children (each grows, later ones shift). `horizontal` says which way g
+    grew; a row fills width, a column height. Returns False when g doesn't fill."""
+    if extra <= 0.01 or opt(g, "justify", "start") != "fill" or not g.children:
+        return False
+    if opt(g, "layout", "row") != ("row" if horizontal else "column"):
+        return False
+    each = extra / len(g.children)
+    for i, k in enumerate(g.children):
+        if horizontal:
+            k.x += i * each
+            k.w += each
+        else:
+            k.y += i * each
+            k.h += each
+        if isinstance(k, Group):
+            fill_line(k, each, horizontal)
+    return True
+
+
 class LineLayout(Layout):
     """row / column: single line with alignment."""
 
@@ -124,11 +146,14 @@ class LineLayout(Layout):
         for idx, k in enumerate(self.kids):
             if align == "stretch":  # every child as wide (column) / tall (row) as the widest
                 if horizontal:
+                    grow = cross - k.h
                     k.h = cross
+                    if isinstance(k, Group):
+                        fill_line(k, grow, False)
                 else:
                     grow = cross - k.w
                     k.w = cross
-                    if isinstance(k, Group) and opt(k, "justify", "start") == "center":
+                    if isinstance(k, Group) and not fill_line(k, grow) and opt(k, "justify", "start") == "center":
                         k.ox += grow / 2  # content stays left unless the tier asks to centre it
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
@@ -572,6 +597,14 @@ def layout_group(g: Group, doc: Document) -> None:
     g.oy = pt + (g.label_h if top else 0)
     g.w = inner_w + pl + pr + g.side_w
     g.h = ch + pt + pb + g.label_h
+    # width=/height= (or CSS width/min-width) set a minimum box size; content stays centred
+    mw = max(px(g.attrs.get("width"), 0), px(g.style.get("width"), 0), px(g.style.get("min-width"), 0))
+    mh = max(px(g.attrs.get("height"), 0), px(g.style.get("height"), 0), px(g.style.get("min-height"), 0))
+    if mw > g.w:
+        grow, g.w = mw - g.w, mw
+        if not fill_line(g, grow):
+            g.ox += grow / 2
+    g.h = max(g.h, mh)
     g.layout_obj = lay
 
 

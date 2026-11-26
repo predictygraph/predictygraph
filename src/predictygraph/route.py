@@ -179,6 +179,7 @@ class Router:
     def __init__(self, doc: Document):
         self.doc = doc
         self.offset: dict[str, float] = {}
+        self.fanned: set[str] = set()
         self.port_shift: dict[tuple[str, int], float] = {}
         self.bend_level: dict[str, float] = {}
         self.curve_level: dict[str, float] = {}
@@ -187,12 +188,34 @@ class Router:
         self.needs: dict[tuple[str, int], float] = {}
 
     def route(self) -> Router:
+        self._fan_buses()
         self._parallel_offsets()
         self._spread_ports()
         self._shared_bends()
         self._shared_curves()
         self._separate_channels()
         return self
+
+    def _fan_buses(self):
+        """Ortho edges sharing a source (or target): when the box overlap lets some of them
+        run straight while others bend, the bent ones jog across the straight ones. Such a
+        fan gives up the straight shortcut, so all of it merges into one bus instead."""
+        fans: dict[tuple[str, str], list[Edge]] = {}
+        for e in self.doc.edges:
+            if e.style.get("route", "curve") == "ortho" and not spread(e) and not e.waypoints:
+                fans.setdefault(("s", e.src), []).append(e)
+                fans.setdefault(("d", e.dst), []).append(e)
+        for es in fans.values():
+            if len(es) < 2:
+                continue
+            geo = {e.id: self.geometry(e) for e in es}
+            if len({a for _, a in geo.values()}) != 1 or next(iter(geo.values()))[1] not in ("v", "h"):
+                continue
+            i = 0 if next(iter(geo.values()))[1] == "v" else 1  # cross-axis coordinate
+            straight = [p[0][i] for p, _ in geo.values() if len(p) == 2 and abs(p[0][i] - p[1][i]) < 0.5]
+            bent = [(min(p[0][i], p[-1][i]), max(p[0][i], p[-1][i])) for p, _ in geo.values() if abs(p[0][i] - p[-1][i]) >= 0.5]
+            if any(lo + 0.5 < c < hi - 0.5 for c in straight for lo, hi in bent):
+                self.fanned.update(e.id for e in es)
 
     def level(self, e: Edge) -> float | None:
         """Where the sideways jog of `e` sits on the flow axis."""
@@ -497,7 +520,7 @@ class Router:
                 p0, p1 = on_outline(a, p0, vert), on_outline(b, p1, vert)
             # boxes overlap on the cross axis: one straight line, no jog / double trace
             boxy = all(x.attrs.get("shape", "box") in RECT_SHAPES or isinstance(x, Group) for x in (a, b))
-            if not wps and not off and boxy:
+            if not wps and not off and boxy and e.id not in self.fanned:
                 i = 0 if vert else 1
                 lo = max(a.ax if vert else a.ay, b.ax if vert else b.ay)
                 hi = min((a.ax + a.w) if vert else (a.ay + a.h), (b.ax + b.w) if vert else (b.ay + b.h))

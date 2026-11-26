@@ -29,7 +29,8 @@ File extension: `.pdg`. Encoding: UTF-8.
 - Classes: `.name` attaches a CSS class.
 - Attributes: `key=value` where value is an identifier, number, string, or `x,y`.
   No spaces around `=` (only `let NAME = VALUE` allows them).
-- Statements end at newline or `;`. `{` opens a block, `}` closes it (own line or end of line).
+- Statements end at newline or `;`, also right after an unquoted attribute value
+  (`a "" width=9; b "B"`). `{` opens a block, `}` closes it (own line or end of line).
 - Keywords (`graph css default group let def use bracket legend node edge`) only count
   at the start of a statement; elsewhere they are ordinary IDs (`group node { ... }`).
 
@@ -156,6 +157,8 @@ Per-edge attributes override arrow defaults:
 Automatic routing rules (layered layouts):
 - Edges between the same two nodes are offset in parallel; `A <-> B` draws one double-headed edge.
 - Ortho edges sharing a target (fan-in) or source (fan-out) turn at one common level, forming a bus.
+  An edge whose boxes overlap usually runs straight instead; when that straight run would
+  cross a sibling's bend, the whole fan leaves from one point and merges into the bus.
 - Curved edges sharing a side of a node (fan-out or fan-in) swing at one common level, so a fan
   to targets at different distances does not cross itself.
 - Rectangular nodes that overlap on the cross axis are joined by a single straight line (no jog).
@@ -183,7 +186,9 @@ Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's
   edge's longest run (below a horizontal run, right of a vertical one).
 - `label-at=start|end` on a bent edge puts the label over its first or last horizontal
   run, with no background patch (draw.io style). Default: the run into the target.
-- `width=W height=H`: minimum size.
+- `width=W height=H`: minimum size, on nodes and groups (CSS `width`/`height` or
+  `min-width`/`min-height` do the same). A group made wider keeps its content centred,
+  or shares the space out with `justify=fill`.
 - `at=x,y`: position, only honoured by `layout=fixed`.
 - `layer=back` (or CSS `layer: back`): draw the node under the edges, like a group.
   For coloured backgrounds and panels that lines run across.
@@ -237,10 +242,16 @@ routed between real nodes.
   - `rank-gap=60 node-gap=30`
   - `order=source|auto`: `source` keeps file order inside each rank (no
     crossing minimisation, the most stable); `auto` minimises crossings.
+- `graph padding=N`: margin around the whole diagram (default 16px; `padding=0` for none).
 - `layout=grid`: `cols=N` (or `rows=N`), `align=center|start|end`, `gap=24`.
 - `layout=row` / `layout=column`: single line, `align=`, `gap=`. `align=stretch` makes
   every child as wide (column) or tall (row) as the largest: equal-width tiers for
   stack diagrams. A stretched group keeps its content left; `justify=center` centres it.
+  `justify=fill` on a row (column) that is made wider (taller), by `align=stretch` or
+  `width=`, shares the extra space equally among its children, so cards in a tier end
+  up the same size and fill it.
+- `.bare`: a built-in class for an invisible helper group (no fill, no outline, no
+  padding), for lining items up without drawing a box.
 - `layout=radial`: `center=ID` (default first child), `radius=auto|N`.
 - `layout=fixed`: children use `at=x,y` (top-left, relative to the container).
 
