@@ -239,7 +239,9 @@ routed between real nodes.
   - `dir=TB|BT|LR|RL`
   - `balance=center|start|end|median`: `center` centres each rank, `median` pulls
     nodes towards their neighbours (dot-like), `start`/`end` justify ranks.
-  - `rank-gap=60 node-gap=30`
+  - `rank-gap=60 node-gap=30`. A labelled edge widens its rank gap so the label fits:
+    by the label's height top to bottom, and in `dir=LR|RL` (where the label runs along
+    the gap) to the label's width plus margins.
   - `order=source|auto`: `source` keeps file order inside each rank (no
     crossing minimisation, the most stable); `auto` minimises crossings.
 - `graph padding=N`: margin around the whole diagram (default 16px; `padding=0` for none).

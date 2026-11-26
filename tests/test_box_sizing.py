@@ -11,6 +11,7 @@ from predictygraph import render
 from predictygraph.layout import layout
 from predictygraph.parser import parse
 from predictygraph.style import apply_styles
+from predictygraph.styleutil import text_block
 
 
 def _doc(src):
@@ -86,3 +87,10 @@ def test_mixed_fan_merges_into_one_bus():
     )
     starts = {m for m in re.findall(r' d="M ([\d.]+ [\d.]+)', svg)}
     assert len(starts) == 1  # all four leave B from one point
+
+
+def test_lr_rank_gap_fits_a_long_edge_label():
+    doc = _doc('graph dir=LR rank-gap=20\na "A"\nb "B"\na -> b "a fairly long edge label"\n')
+    a, b = _item(doc, "a"), _item(doc, "b")
+    lw = text_block("a fairly long edge label", {}, 11, bold=False)[0]
+    assert b.ax - (a.ax + a.w) >= lw  # the label runs along the gap, so all of it fits

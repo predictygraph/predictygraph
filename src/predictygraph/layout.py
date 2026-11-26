@@ -465,12 +465,15 @@ class LayeredLayout(Layout):
         # 6. main-axis coordinates (router may ask for wider gaps: g.extra_gap[rank])
         rank_thick = [max((msz(u) for u in layer), default=0) for layer in order]
         extra = dict(getattr(g, "extra_gap", {}))
-        # labelled edges need a run long enough to carry the label beside the bus
+        # labelled edges need a run long enough to carry the label: beside the bus (TB),
+        # or along the gap (LR), where the whole label width has to fit between the ranks
         for a, b, e in local_edges(g, self.doc):
             if e.label and a.id in rank and b.id in rank:
-                lh = px(e.style.get("font-size"), 11) * 1.25 * (e.label.count("\n") + 1) + 10
+                need = px(e.style.get("font-size"), 11) * 1.25 * (e.label.count("\n") + 1) + 10
+                if horizontal:
+                    need = max(need, text_block(e.label, e.label_style or e.style, 11, bold=False)[0] + 34 - rank_gap)
                 r = min(rank[a.id], rank[b.id]) - lo
-                extra[r] = max(extra.get(r, 0.0), lh)
+                extra[r] = max(extra.get(r, 0.0), need)
         main = 0.0
         main_pos = []
         for ri, t in enumerate(rank_thick):
