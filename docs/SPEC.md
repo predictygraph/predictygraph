@@ -4,18 +4,18 @@ SPDX-FileCopyrightText: 2026 Reza Jelveh
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Predictygraph DSL — specification v0.2 (draft)
+# Predictygraph DSL: specification v0.2 (draft)
 
 Predictygraph is a small, line-oriented text format for diagrams (flowcharts, architecture
 graphs, trees, grids). Design goals:
 
-1. **Readable diffs** — one statement per line, no XML, no coordinates unless you ask.
-2. **Layout is explicit and local** — every container (graph or group) chooses its
+1. **Readable diffs**: one statement per line, no XML, no coordinates unless you ask.
+2. **Layout is explicit and local**: every container (graph or group) chooses its
    own layout ("balancing style"). A layered flow can contain a grid, which can
    contain a radial cluster. Changing one group never reshuffles the others.
-3. **Styling is plain CSS** — a small, documented subset resolved by the tool itself.
+3. **Styling is plain CSS**: a small, documented subset resolved by the tool itself.
    Output is static SVG with presentation attributes; no browser, no JS.
-4. **Language agnostic** — the grammar below is the contract. Python is only the
+4. **Language agnostic**: the grammar below is the contract. Python is only the
    reference implementation.
 
 File extension: `.pdg`. Encoding: UTF-8.
@@ -26,7 +26,7 @@ File extension: `.pdg`. Encoding: UTF-8.
   whitespace. `#fff` and `#id` are therefore never comments. Not applied inside `css { }`.
 - Strings: `"..."` with `\"`, `\\`, `\n` escapes. `\n` in labels makes a line break.
 - Identifiers: `[A-Za-z_][A-Za-z0-9_-]*` (case-sensitive).
-- Classes: `.name` — attach CSS classes.
+- Classes: `.name` attaches a CSS class.
 - Attributes: `key=value` where value is an identifier, number, string, or `x,y`.
   No spaces around `=` (only `let NAME = VALUE` allows them).
 - Statements end at newline or `;`. `{` opens a block, `}` closes it (own line or end of line).
@@ -58,7 +58,7 @@ legend .class... ["Label"] [attrs]               # legend entry (top level)
 
 Nodes referenced in an edge but never declared are created implicitly in the
 **current scope** with their ID as label. A node belongs to the scope where it is
-first declared or referenced — so declare nodes inside their group first and connect
+first declared or referenced, so declare nodes inside their group first and connect
 them from anywhere.
 
 ### 2.1 Variables and reusable blocks
@@ -111,33 +111,33 @@ Examples: `a -> b`, `a <-> b`, `a -- b` (no heads), `a ==> b`, `a <.. b`.
 
 Per-edge attributes override arrow defaults:
 
-- `width=3` — stroke width in px
-- `arrow=none|end|start|both` — overrides what the token says
-- `head=triangle|open|diamond|dot|bar` — arrowhead shape
-- `head-size=N` — arrowhead length in px (default grows with width: 6 + 2.2 x width, max 18).
+- `width=3`: stroke width in px
+- `arrow=none|end|start|both`: overrides what the token says
+- `head=triangle|open|diamond|dot|bar`: arrowhead shape
+- `head-size=N`: arrowhead length in px (default grows with width: 6 + 2.2 x width, max 18).
   Heads are drawn as geometry, not SVG markers: the tip sits exactly on the target
   outline, the stroke stops at the head's base, and the head is aligned with the flow axis.
-- `route=straight|ortho|curve|bend` — routing for this edge
+- `route=straight|ortho|curve|bend`: routing for this edge
   - `curve`: full S-shaped bezier.
   - `bend`: straight in the middle, rounded only at the ends. The edge leaves and enters
     nodes along the flow axis, runs `stub=` px, then bends with corner `radius=` (default 12)
     into a straight diagonal.
   - `ortho`: right angles; `radius=` rounds the corners (default 6).
-- `radius=N`, `stub=N` — bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
-- `via="x,y x,y ..."` — fixed bend points (pairs split on spaces or `;`), in the root's
+- `radius=N`, `stub=N`: bend tuning (also graph-wide and as CSS `radius:` / `stub:` on `edge`)
+- `via="x,y x,y ..."`: fixed bend points (pairs split on spaces or `;`), in the root's
   `at=` frame. The edge runs straight through them; it leaves and enters a node straight
   out of the side facing the nearest point when that point lines up with the node (else
   towards its centre). `radius=` rounds the bends (default: sharp). Works in any layout;
   the router leaves via edges alone. Edges sharing a bus just repeat its points.
-- `diagonal=N|none|always` — when a bent edge may use one slanted segment instead of a
+- `diagonal=N|none|always`: when a bent edge may use one slanted segment instead of a
   right-angle jog. Every `bend`/`ortho` edge is: stub along the flow axis, one jog
   sideways, stub into the target. The jog is diagonal only if the sideways offset is at
   most N px **and** the slant fits between the two stubs at `diagonal-angle`; otherwise
   it is a perpendicular run (Z shape). Aligned ports are always one straight line.
   Default: `40` for `route=bend`, `none` for `route=ortho`. `always` steepens the angle
   as needed so every jog is diagonal.
-- `diagonal-angle=45` — slant angle in degrees from the flow axis (10–80; 45 = octilinear)
-- `fan=spread` — edges leaving (or entering) one side of a node use separate ports spread
+- `diagonal-angle=45`: slant angle in degrees from the flow axis (10 to 80; 45 = octilinear)
+- `fan=spread`: edges leaving (or entering) one side of a node use separate ports spread
   along that side, turn right after their stub and slant at `diagonal-angle`, so a
   fan-out reads as parallel branches instead of merging into one ortho bus.
   A spread branch that already ends within 24px of level with its target is snapped
@@ -149,7 +149,7 @@ Per-edge attributes override arrow defaults:
   Edges sharing a source or target *and* the same look (body, dash, colour, classes) are
   a deliberate bus and stay merged; a dashed `..>` path into the same node is a
   distinct trace and gets its own lane.
-- `exit=top|bottom|left|right`, `enter=...` — pin the side an edge leaves/enters (port at the
+- `exit=top|bottom|left|right`, `enter=...`: pin the side an edge leaves/enters (port at the
   side's middle). Mixed vertical/horizontal sides draw an L with one rounded corner. The same
   side at both ends (`exit=left enter=left`) draws a C that goes around every box between.
 
@@ -159,8 +159,8 @@ Automatic routing rules (layered layouts):
 - Curved edges sharing a side of a node (fan-out or fan-in) swing at one common level, so a fan
   to targets at different distances does not cross itself.
 - Rectangular nodes that overlap on the cross axis are joined by a single straight line (no jog).
-- `weight=N` — how strongly a layered layout keeps the edge short/straight (default 1)
-- `constraint=false` — the edge is drawn but ignored by layout
+- `weight=N`: how strongly a layered layout keeps the edge short/straight (default 1)
+- `constraint=false`: the edge is drawn but ignored by layout
 
 Graph-wide defaults: `graph edge-width=1.5 arrow=end head=triangle route=curve` or
 `default edge width=2`.
@@ -173,25 +173,25 @@ Attributes:
   (`square` = box forced to equal width and height)
 
 Edge endpoints may be node IDs or group IDs. `a -> pool` attaches to the group's outer box.
-- `image=path.svg|path.png` — makes the node an image leaf. Default `shape=image`
+- `image=path.svg|path.png`: makes the node an image leaf. Default `shape=image`
   (no box, label below). With an explicit shape the image sits inside the box above the label.
-- `img-width=48 img-height=48` — image size (defaults: intrinsic, max 96px).
-- `icon=user` — a [Lucide](https://lucide.dev/icons) icon instead of an image file
+- `img-width=48 img-height=48`: image size (defaults: intrinsic, max 96px).
+- `icon=user`: a [Lucide](https://lucide.dev/icons) icon instead of an image file
   (needs `pip install 'predictygraph[icons]'`). It takes the node's `fill`, `stroke` and
   `stroke-width`; default size 48px, change it with `img-width`/`img-height`.
 - On an edge, `image=logo.png img-width=48` places a badge beside the middle of the
   edge's longest run (below a horizontal run, right of a vertical one).
 - `label-at=start|end` on a bent edge puts the label over its first or last horizontal
   run, with no background patch (draw.io style). Default: the run into the target.
-- `width=W height=H` — minimum size.
-- `at=x,y` — position, only honoured by `layout=fixed`.
-- `layer=back` (or CSS `layer: back`) — draw the node under the edges, like a group.
+- `width=W height=H`: minimum size.
+- `at=x,y`: position, only honoured by `layout=fixed`.
+- `layer=back` (or CSS `layer: back`): draw the node under the edges, like a group.
   For coloured backgrounds and panels that lines run across.
-- `rank=N` (layered) / `row=R col=C` (grid) — pin a slot.
-- `align-x=ID` — after layout, centre this node or group horizontally on another item,
+- `rank=N` (layered) / `row=R col=C` (grid): pin a slot.
+- `align-x=ID`: after layout, centre this node or group horizontally on another item,
   even one in a different panel (line a box up with the one it calls below). It only
   moves inside its parent's content box and never past a sibling, so nothing overlaps.
-- `sub="second line"` — secondary text under the label, on nodes and groups. Styled with
+- `sub="second line"`: secondary text under the label, on nodes and groups. Styled with
   the `sub` selector (default: grey, 0.85em, never bold); `node.x sub { ... }` targets one
   class. `\n` makes several lines.
 
@@ -230,19 +230,19 @@ Every container takes `layout=` and its own options. Groups are laid out first
 of different groups are projected onto the group boxes for the parent's layout, then
 routed between real nodes.
 
-- `layout=layered` (default) — rank-based flow (Sugiyama-style).
+- `layout=layered` (default): rank-based flow (Sugiyama-style).
   - `dir=TB|BT|LR|RL`
-  - `balance=center|start|end|median` — `center` centres each rank, `median` pulls
+  - `balance=center|start|end|median`: `center` centres each rank, `median` pulls
     nodes towards their neighbours (dot-like), `start`/`end` justify ranks.
   - `rank-gap=60 node-gap=30`
-  - `order=source|auto` — `source` keeps file order inside each rank (no
+  - `order=source|auto`: `source` keeps file order inside each rank (no
     crossing minimisation, the most stable); `auto` minimises crossings.
-- `layout=grid` — `cols=N` (or `rows=N`), `align=center|start|end`, `gap=24`.
-- `layout=row` / `layout=column` — single line, `align=`, `gap=`. `align=stretch` makes
-  every child as wide (column) or tall (row) as the largest — equal-width tiers for
+- `layout=grid`: `cols=N` (or `rows=N`), `align=center|start|end`, `gap=24`.
+- `layout=row` / `layout=column`: single line, `align=`, `gap=`. `align=stretch` makes
+  every child as wide (column) or tall (row) as the largest: equal-width tiers for
   stack diagrams. A stretched group keeps its content left; `justify=center` centres it.
-- `layout=radial` — `center=ID` (default first child), `radius=auto|N`.
-- `layout=fixed` — children use `at=x,y` (top-left, relative to the container).
+- `layout=radial`: `center=ID` (default first child), `radius=auto|N`.
+- `layout=fixed`: children use `at=x,y` (top-left, relative to the container).
 
 Default for a group is `layout=row` when it has no internal edges, else `layered`
 (set explicitly for stable results).
@@ -315,16 +315,16 @@ run past their boxes. Use `web` for files that are shared or published.
 Animation is optional and never changes layout. The first frame (t=0) is always the
 complete diagram, so static renderers (rsvg, cairosvg, WeasyPrint, PDF) stay correct.
 
-**Edge flows** — a moving dotted pattern along the edge:
+**Edge flows**: a moving dotted pattern along the edge:
 
-- `flow=forward` — dots travel source → target
-- `flow=reverse` — target → source
-- `flow=both` — two interleaved streams, one each way
-- `flow=auto` — follow the arrowheads (`->` forward, `<-` reverse, `<->` both)
-- `flow-speed=1.2s` — time for one dash period (default 1.2s; `ms` also accepted)
-- `flow=draw` — the edge traces itself in from the source, holds, and redraws; `flow-speed`
+- `flow=forward`: dots travel source → target
+- `flow=reverse`: target → source
+- `flow=both`: two interleaved streams, one each way
+- `flow=auto`: follow the arrowheads (`->` forward, `<-` reverse, `<->` both)
+- `flow-speed=1.2s`: time for one dash period (default 1.2s; `ms` also accepted)
+- `flow=draw`: the edge traces itself in from the source, holds, and redraws; `flow-speed`
   is the full cycle (default 3s). The t=0 frame shows the whole edge.
-- `flow-dot=ring` — hollow dots (background-filled rings) instead of solid dots
+- `flow-dot=ring`: hollow dots (background-filled rings) instead of solid dots
 
 `grid=40` on the `graph` line (or `graph { grid: 40; grid-color: #223; }`) draws a faint
 background grid with that pitch. It is decoration only and never affects layout.
@@ -344,10 +344,10 @@ body (`..>`, `stroke-dasharray=`) that dash pattern is what moves.
 
 **Animated borders** on nodes and groups:
 
-- `border=march` — dashed outline that crawls around the shape ("marching ants")
-- `border=pulse` — outline breathes in width and opacity
-- `border=glow` — a halo ring expands and fades behind the shape
-- `border-speed=1.6s` — cycle time
+- `border=march`: dashed outline that crawls around the shape ("marching ants")
+- `border=pulse`: outline breathes in width and opacity
+- `border=glow`: a halo ring expands and fades behind the shape
+- `border-speed=1.6s`: cycle time
 
 All four keys work as attributes, in `default node|edge|group`, on the `graph` line
 (`flow-speed` only) and as CSS properties, e.g. `edge.hot { flow: forward; flow-speed: .6s; }`.
@@ -355,9 +355,9 @@ SVG output uses SMIL `<animate>` (plays in browsers); the same tracks drive APNG
 
 **Output modes (CLI):**
 
-- `predictygraph x.pdg` — animated SVG
-- `predictygraph x.pdg --static` / `--at 0.4` — SVG frozen at t=0 / t=0.4s
-- `predictygraph x.pdg -o x.png` — animated PNG (APNG), one seamless loop (LCM of all cycle
+- `predictygraph x.pdg`: animated SVG
+- `predictygraph x.pdg --static` / `--at 0.4`: SVG frozen at t=0 / t=0.4s
+- `predictygraph x.pdg -o x.png`: animated PNG (APNG), one seamless loop (LCM of all cycle
   times, capped at 12s); `--fps 20 --scale 2 --seconds N` tune it. Needs `predictygraph[apng]`.
 
 ## 8. Pipeline and output contract
