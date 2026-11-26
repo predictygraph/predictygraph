@@ -528,6 +528,10 @@ class Router:
                 hi = min((a.ax + a.w) if vert else (a.ay + a.h), (b.ax + b.w) if vert else (b.ay + b.h))
                 if abs(p0[i] - p1[i]) > 0.5 and hi - lo >= 16:
                     m = min(max((p0[i] + p1[i]) / 2, lo + 8), hi - 8)
+                    # one box spans the other: run through the narrower one's centre
+                    narrow = min((a, b), key=lambda n: n.w if vert else n.h)
+                    if hi - lo >= (narrow.w if vert else narrow.h) - 0.5:
+                        m = narrow.cx if vert else narrow.cy
                     p0 = (m, p0[1]) if vert else (p0[0], m)
                     p1 = (m, p1[1]) if vert else (p1[0], m)
             return [p0] + wps + [p1], ("v" if vert else "h")

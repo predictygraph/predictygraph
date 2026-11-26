@@ -157,7 +157,8 @@ Per-edge attributes override arrow defaults:
 Automatic routing rules (layered layouts):
 - Edges between the same two nodes are offset in parallel; `A <-> B` draws one double-headed edge.
 - Ortho edges sharing a target (fan-in) or source (fan-out) turn at one common level, forming a bus.
-  An edge whose boxes overlap usually runs straight instead; when that straight run would
+  An edge whose boxes overlap usually runs straight instead (through the narrower box's
+  centre when one box spans the other); when that straight run would
   cross a sibling's bend, the whole fan leaves from one point and merges into the bus.
 - Curved edges sharing a side of a node (fan-out or fan-in) swing at one common level, so a fan
   to targets at different distances does not cross itself.

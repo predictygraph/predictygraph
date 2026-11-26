@@ -94,3 +94,16 @@ def test_lr_rank_gap_fits_a_long_edge_label():
     a, b = _item(doc, "a"), _item(doc, "b")
     lw = text_block("a fairly long edge label", {}, 11, bold=False)[0]
     assert b.ax - (a.ax + a.w) >= lw  # the label runs along the gap, so all of it fits
+
+
+NARROW = (
+    "graph layout=column gap=40 align=start\n"
+    'top "a very wide box that spans the narrow one below it" width=600\n'
+    'n "narrow" width=80\n'
+    "top -> n route=ortho\n"
+)
+
+
+def test_straight_edge_runs_through_the_narrower_box_centre():
+    x = float(re.search(r' d="M ([\d.]+)', render(NARROW, t=0))[1])
+    assert abs(x - _item(_doc(NARROW), "n").cx) < 0.5
