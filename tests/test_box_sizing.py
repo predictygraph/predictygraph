@@ -137,3 +137,12 @@ def test_a_wider_graph_stretches_a_stretched_column():
     )
     r, a, b = _item(doc, "r"), _item(doc, "a"), _item(doc, "b")
     assert abs(r.w - (500 - 32)) < 0.5 and abs(a.w - b.w) < 0.5 and abs(a.w + b.w + 10 - r.w) < 0.5
+
+
+def test_rem_is_the_graph_size_even_for_subtitles_and_labels():
+    doc = _doc(
+        "graph layout=row\ncss { graph { font-size: 20px; } node { font-size: 30px; } sub { font-size: 0.5rem; } label { font-size: 0.6rem; } }\n"
+        'a "A" sub="s"\nb "B"\na -> b "l"\n'
+    )
+    assert _item(doc, "a").sub_style["font-size"] == "10.00px"  # 0.5 x graph, not x node
+    assert doc.edges[0].label_style["font-size"] == "12.00px"

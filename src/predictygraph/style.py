@@ -188,20 +188,23 @@ class _Part:
     id: str = ""
 
 
-def part_style(sheet: StyleSheet, kind: str, owner, anc: list, inherit: dict) -> dict[str, str]:
+def part_style(sheet: StyleSheet, kind: str, owner, anc: list, inherit: dict, rem: float = 0) -> dict[str, str]:
     """Style for a text part: inherits text keys from its owner, then CSS for `kind`.
     Subtitles drop the owner's weight: a bold title should not make the second line bold.
-    `em`/`%` font sizes are relative to the owner's size."""
+    `em`/`%` font sizes are relative to the owner's size, `rem` to the graph's."""
     base = {k: inherit[k] for k in TEXT_KEYS if k in inherit and not (kind == "sub" and k == "font-weight")}
     st = sheet.resolve_vars({**base, **sheet.compute(_Part(kind, list(owner.classes)), [owner] + anc)})
     if "font-size" in st:
-        st["font-size"] = rel_size(st["font-size"], px(inherit.get("font-size"), 14))
+        st["font-size"] = rel_size(st["font-size"], px(inherit.get("font-size"), 14), rem)
     return st
 
 
-def rel_size(fs: str, base: float) -> str:
-    """`em`/`%` font size -> px against `base`; any other value unchanged."""
+def rel_size(fs: str, base: float, rem: float = 0) -> str:
+    """`em`/`%` font size -> px against `base`, `rem` against `rem` (the graph's size,
+    `base` when not given); any other value unchanged."""
     fs = fs.strip()
+    if fs.endswith("rem"):
+        return f"{(rem or base) * number(fs[:-3], 1, 0.1, 10):.2f}px"
     if fs.endswith("em"):
         return f"{base * number(fs[:-2], 1, 0.1, 10):.2f}px"
     if fs.endswith("%"):
@@ -255,7 +258,7 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
         if "font-size" in item.style:
             item.style["font-size"] = rel_size(item.style["font-size"], base)
         if "sub" in item.attrs:
-            item.sub_style = part_style(sheet, "sub", item, anc, item.style)
+            item.sub_style = part_style(sheet, "sub", item, anc, item.style, base)
     ge = root.attrs
     for e in doc.edges:
         anc = [a for a in (([e.scope] + e.scope.ancestors()) if e.scope is not root else [root]) if a is not None]
@@ -276,9 +279,9 @@ def apply_styles(doc: Document, target: str | None = None) -> None:
         e.style = sheet.resolve_vars(st)
         if "font-size" in e.style:
             e.style["font-size"] = rel_size(e.style["font-size"], base)
-        e.label_style = part_style(sheet, "label", e, anc, e.style)
+        e.label_style = part_style(sheet, "label", e, anc, e.style, base)
         if "step" in e.attrs:
-            e.step_style = part_style(sheet, "step", e, anc, e.style)
+            e.step_style = part_style(sheet, "step", e, anc, e.style, base)
 
 
 def px(v: str | None, default: float = 0.0) -> float:

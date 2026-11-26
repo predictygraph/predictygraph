@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+`rem` font sizes: always relative to the graph's size, on subtitles, edge labels and step badges too (`em` there is relative to the owner). A theme can define one type scale, e.g. `graph { --t12: 0.8rem; }` and `sub { font-size: var(--t12); }`, that renders the same everywhere.
+
 ## 0.4.0
 
 predictygraph 0.4.0: font sizes follow the diagram, so a host can scale all diagram text with one setting, and `em` works like CSS `rem`. This release also collects the layout, routing and drawing work since 0.3.0.

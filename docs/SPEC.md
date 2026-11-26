@@ -290,6 +290,8 @@ Supported properties:
   default 14px). `em` and `%` on nodes, groups and edges are relative to the graph's size,
   like CSS `rem`: a group's `font-size` is its title size, so it does not shrink the
   nodes inside it. On text parts (`sub`, `label`, `step`) they are relative to the owner.
+  `rem` is always relative to the graph's size, on text parts too, so a theme can define
+  one type scale (`--t12: 0.8rem`) that means the same everywhere.
   A host that sets the graph size (decktile: the slide's body size) so scales every
   diagram's text with one value.
 - Edge: `stroke`, `stroke-width`, `stroke-dasharray`, `arrow`, `head`, `route`
