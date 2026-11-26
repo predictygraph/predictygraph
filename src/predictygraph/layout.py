@@ -141,7 +141,25 @@ def fill_line(g: Group, extra: float, horizontal: bool = True) -> bool:
         setattr(k, size, s + grow)
         shift += grow
         if isinstance(k, Group):
-            fill_line(k, grow, horizontal)
+            grow_box(k, grow, horizontal)
+    return True
+
+
+def grow_box(g: Group, extra: float, horizontal: bool) -> bool:
+    """g was made `extra` wider (horizontal) or taller: let its content take the space,
+    along the line (`justify=fill`) or across it (`align=stretch`, like CSS: a stretched
+    column's children keep its width). Returns False when the content keeps its size."""
+    if fill_line(g, extra, horizontal):
+        return True
+    if extra <= 0.01 or opt(g, "align", "center") != "stretch" or opt(g, "layout", "row") != ("column" if horizontal else "row"):
+        return False
+    for k in g.children:
+        if horizontal:
+            k.w += extra
+        else:
+            k.h += extra
+        if isinstance(k, Group):
+            grow_box(k, extra, horizontal)
     return True
 
 
@@ -161,11 +179,11 @@ class LineLayout(Layout):
                     grow = cross - k.h
                     k.h = cross
                     if isinstance(k, Group):
-                        fill_line(k, grow, False)
+                        grow_box(k, grow, False)
                 else:
                     grow = cross - k.w
                     k.w = cross
-                    if isinstance(k, Group) and not fill_line(k, grow) and opt(k, "justify", "start") == "center":
+                    if isinstance(k, Group) and not grow_box(k, grow, True) and opt(k, "justify", "start") == "center":
                         k.ox += grow / 2  # content stays left unless the tier asks to centre it
             size_c = k.h if horizontal else k.w
             off = {"start": 0, "end": cross - size_c}.get(align, (cross - size_c) / 2)
@@ -617,7 +635,7 @@ def layout_group(g: Group, doc: Document) -> None:
     mh = max(set_size(g, "height"), px(g.style.get("min-height"), 0))
     if mw > g.w:
         grow, g.w = mw - g.w, mw
-        if not fill_line(g, grow):
+        if not grow_box(g, grow, True):
             g.ox += grow / 2
     g.h = max(g.h, mh)
     g.layout_obj = lay

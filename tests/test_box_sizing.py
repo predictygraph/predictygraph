@@ -128,3 +128,12 @@ def test_nodes_take_the_graph_font_size_and_em_is_relative_to_it():
     assert b.style["font-size"] == "30.00px"
     assert g.style["font-size"] == "10.00px"
     assert doc.edges[0].style["font-size"] == "15.00px"
+
+
+def test_a_wider_graph_stretches_a_stretched_column():
+    """graph min-width (decktile: the column width) reaches tiers like CSS stretch does."""
+    doc = _doc(
+        'graph layout=column align=stretch\ncss { graph { min-width: 500px; } }\ngroup r layout=row gap=10 justify=fill .bare { a "A"; b "B" }\n'
+    )
+    r, a, b = _item(doc, "r"), _item(doc, "a"), _item(doc, "b")
+    assert abs(r.w - (500 - 32)) < 0.5 and abs(a.w - b.w) < 0.5 and abs(a.w + b.w + 10 - r.w) < 0.5

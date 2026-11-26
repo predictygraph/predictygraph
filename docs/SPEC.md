@@ -252,7 +252,10 @@ routed between real nodes.
   stack diagrams. A stretched group keeps its content left; `justify=center` centres it.
   `justify=fill` on a row (column) that is made wider (taller), by `align=stretch` or
   `width=`, shares the extra space equally among its children, so cards in a tier end
-  up the same size and fill it.
+  up the same size and fill it. Likewise a stretched column (row) made wider (taller)
+  passes the extra on to its children, all the way down: `graph { min-width: 800px }`
+  on a column of stretched tiers makes every tier 800px wide (decktile uses this to draw
+  a diagram exactly as wide as its slide column).
 - `.bare`: a built-in class for an invisible helper group (no fill, no outline, no
   padding), for lining items up without drawing a box.
 - `layout=radial`: `center=ID` (default first child), `radius=auto|N`.
