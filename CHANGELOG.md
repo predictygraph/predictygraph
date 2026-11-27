@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+Theme files: `utilities = true` adds `.fill-<colour> .stroke-<colour> .text-<colour> .sub-<colour>` classes for every palette entry, plus `.fill-none .stroke-none .regular .bold .heavy`, so diagrams set colours and weights without CSS. `[classes]` entries accept `font-weight` and `sub-weight`.
+
 ## 0.4.2
 
 Theme files: `[palette]` entries may name another entry (`lime = "green"`), so brand colours sit next to the hues; new `[classes]` table defines named colour classes for nodes, groups and edges (`lime = { fill = "lime", color = "ink", sub = "ink-2" }`). The theme TOML format is now documented in the spec.

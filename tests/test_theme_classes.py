@@ -29,9 +29,9 @@ ink = "blue"
 """
 
 
-def _theme(tmp_path, extra=""):
+def _theme(tmp_path, extra="", top=""):
     p = tmp_path / "t.toml"
-    p.write_text(BASE + extra)
+    p.write_text(top + BASE + extra)
     return p
 
 
@@ -45,6 +45,24 @@ def test_palette_aliases_and_classes(tmp_path):
     assert a.style["fill"] == "#a8d729" and a.style["stroke"] == "#a8d729" and a.style["color"] == "#093034"
     assert a.sub_style["color"] == "#808080"
     assert doc.edges[0].style["stroke"] == "#a8d729"
+
+
+def test_classes_set_font_weights(tmp_path):
+    p = _theme(tmp_path, "[classes]\nregular = { font-weight = 400, sub-weight = 700 }\n")
+    doc = parse(f'graph theme={p}\ncss {{ node {{ font-weight: 700; }} sub {{ font-weight: 400; }} }}\na "A" .regular sub="s"\n')
+    build_scene(doc)
+    a = doc.items["a"]
+    assert str(a.style["font-weight"]) == "400" and str(a.sub_style["font-weight"]) == "700"
+
+
+def test_utilities_pick_palette_colours_and_weights_by_class(tmp_path):
+    p = _theme(tmp_path, top="utilities = true\n")
+    doc = parse(f'graph theme={p}\na "A" .green .fill-ink .text-lime .regular\nb "B"\na -> b .stroke-muted\n')
+    build_scene(doc)
+    a = doc.items["a"]
+    assert a.style["fill"] == "#093034" and a.style["color"] == "#a8d729" and str(a.style["font-weight"]) == "400"
+    assert a.style["stroke"] == "#a8d729"  # .green's stroke stays
+    assert doc.edges[0].style["stroke"] == "#808080"
 
 
 def test_unknown_class_key_is_an_error(tmp_path):

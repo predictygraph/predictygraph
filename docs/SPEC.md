@@ -295,11 +295,18 @@ A theme is a TOML file (bundled ones by name, others by path or `PDG_THEME_PATH`
 - `[roles]`: which palette entry plays `accent danger node-fill node-stroke node-text
   group-fill group-stroke group-text edge edge-text`.
 - `[shape]`: `radius`, `font`, `edge-width`.
-- `[classes]`: named colour classes for nodes, groups and edges, e.g.
+- `[classes]`: named classes for nodes, groups and edges, e.g.
   `lime = { fill = "lime", color = "ink", sub = "ink-2" }`. Keys: `fill`, `stroke`
   (default: the fill), `color` (text), `title-fill`, `sub` (subtitle colour), `edge`
-  (colour of `edge.lime`, default: the fill). Values are palette names or CSS colours.
+  (colour of `edge.lime`, default: the fill), `font-weight` and `sub-weight` (`400`,
+  `"bold"`). Colours are palette names or CSS colours.
   `.lime` then works on any node, group or edge.
+- `utilities = true`: one class per palette entry and property, so diagrams pick colours
+  and weights by name without CSS: `.fill-<name>` (nodes, groups), `.stroke-<name>`,
+  `.text-<name>`, `.sub-<name>` (subtitle colour), `.fill-none`, `.stroke-none`, and
+  `.regular` (400), `.bold` (700), `.heavy` (900). They come after `[classes]` and the
+  theme's `css`, so `a "A" .lime .text-ink .regular` is a lime box with regular ink text;
+  css in the `.pdg` file still wins.
 - `css`: free CSS appended after the generated rules (`var(--name)` works).
 - `[seaborn]`: chart settings for decktile; ignored by pdg.
 

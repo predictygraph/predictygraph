@@ -51,30 +51,54 @@ def _resolve_aliases(pal: dict, name: str) -> dict:
     return out
 
 
-CLASS_KEYS = {"fill", "stroke", "color", "sub", "edge", "title-fill"}
+CLASS_KEYS = {"fill", "stroke", "color", "sub", "edge", "title-fill", "font-weight", "sub-weight"}
+BOX_KEYS = ("fill", "stroke", "color", "title-fill", "font-weight")
 
 
 def _class_rules(classes: dict, pal: dict, name: str) -> list[str]:
     """`[classes] lime = { fill = "lime", color = "ink", sub = "ink-2", edge = "lime" }`:
-    `node.lime, group.lime` get fill/stroke/color (stroke defaults to fill), `node.lime sub`
-    the `sub` colour, `edge.lime` the `edge` colour (default: the fill). Values are palette
-    names or any CSS colour."""
+    `node.lime, group.lime` get fill/stroke/color/font-weight (stroke defaults to fill),
+    `node.lime sub` the `sub` colour and `sub-weight`, `edge.lime` the `edge` colour
+    (default: the fill). Colours are palette names or any CSS colour; weights are CSS
+    font weights (`400`, `bold`)."""
     lines = []
     for cls, spec in classes.items():
         if not isinstance(spec, dict) or set(spec) - CLASS_KEYS:
             raise ThemeError(f"theme {name!r}: classes.{cls} keys must be among {sorted(CLASS_KEYS)}")
-        val = {k: f"var(--{v})" if v in pal else v for k, v in spec.items()}
-        box = {k: val[k] for k in ("fill", "stroke", "color", "title-fill") if k in val}
+        val = {k: f"var(--{v})" if isinstance(v, str) and v in pal else str(v) for k, v in spec.items()}
+        box = {k: val[k] for k in BOX_KEYS if k in val}
         if "fill" in box:
             box.setdefault("stroke", box["fill"])
         if box:
             lines.append(f"node.{cls}, group.{cls} {{ " + " ".join(f"{k}: {v};" for k, v in box.items()) + " }")
-        if "sub" in val:
-            lines.append(f"node.{cls} sub {{ color: {val['sub']}; }}")
+        sub = {k: val[s] for k, s in (("color", "sub"), ("font-weight", "sub-weight")) if s in val}
+        if sub:
+            lines.append(f"node.{cls} sub {{ " + " ".join(f"{k}: {v};" for k, v in sub.items()) + " }")
         if "edge" in val or "fill" in val:
             c = val.get("edge", val.get("fill"))
             lines.append(f"edge.{cls} {{ stroke: {c}; color: {c}; }}")
     return lines
+
+
+WEIGHTS = {"regular": 400, "bold": 700, "heavy": 900}
+
+
+def utility_rules(pal: dict) -> list[str]:
+    """`utilities = true`: one class per palette colour and property, so a diagram picks
+    colours by name instead of writing CSS: `.fill-lime .stroke-ink .text-muted .sub-muted`
+    (subtitle colour), plus
+    `.fill-none .stroke-none` and the weights `.regular .bold .heavy`. They come after
+    `[classes]` and the theme's `css`, so `.lime .text-ink` is lime with ink text."""
+    sel = lambda c: f"node.{c}, group.{c}, edge.{c}"  # noqa: E731
+    out = [f"{sel('fill-none')} {{ fill: none; }}", f"{sel('stroke-none')} {{ stroke: none; }}"]
+    for k in pal:
+        out.append(f"node.fill-{k}, group.fill-{k} {{ fill: var(--{k}); }}")
+        out.append(f"{sel('stroke-' + k)} {{ stroke: var(--{k}); }}")
+    for k in pal:
+        out.append(f"{sel('text-' + k)} {{ color: var(--{k}); }}")
+        out.append(f"node.sub-{k} sub, group.sub-{k} sub {{ color: var(--{k}); }}")
+    out += [f"{sel(w)} {{ font-weight: {v}; }}" for w, v in WEIGHTS.items()]
+    return out
 
 
 def find_theme(name: str, base_dir: str = ".") -> Path:
@@ -108,6 +132,7 @@ def load_theme(name: str, base_dir: str = ".", _seen=()) -> dict:
             parent["css"] = parent.get("css", "") + "\n" + data["css"]
         parent["name"] = data.get("name", name)
         parent["dark"] = data.get("dark", parent.get("dark", False))
+        parent["utilities"] = data.get("utilities", parent.get("utilities", False))
         data = parent
     return data
 
@@ -153,4 +178,6 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines += _class_rules(t.get("classes", {}), pal, name)
     if t.get("css"):  # free-form rules after the generated ones; var(--hue) works here
         lines.append(t["css"])
+    if t.get("utilities"):  # last, so a utility class wins over the theme's own rules
+        lines += utility_rules(pal)
     return "\n".join(lines) + "\n"
