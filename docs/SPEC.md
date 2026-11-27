@@ -292,8 +292,15 @@ A theme is a TOML file (bundled ones by name, others by path or `PDG_THEME_PATH`
   yellow green cyan blue purple`. Every entry becomes a CSS variable (`var(--ink)`),
   each hue also gets a `-soft` tint, and `bg-alt` defaults to a mix of surface and bg.
   Brand colours beyond the hues go here too, so diagrams name roles, not hex codes.
-- `[roles]`: which palette entry plays `accent danger node-fill node-stroke node-text
-  group-fill group-stroke group-text edge edge-text`.
+- `[roles]`: what each colour means. Structural roles: `accent danger node-fill
+  node-stroke node-text group-fill group-stroke group-text edge edge-text`. Colour roles,
+  so diagrams and charts name a meaning instead of a brand colour: `highlight`
+  `highlight-soft` `primary` `secondary` `tertiary` `positive` `emphasis`. Roles used by
+  the generic classes: `label-text frame-stroke placeholder-fill placeholder-stroke
+  band-fill`. `series = ["lime", "mint", ...]` lists the categorical colours (jobs,
+  clusters, chip types). Every role and `series-1` ... is a CSS variable; defaults keep a
+  theme without `[roles]` looking as before. A brand theme maps the roles to its palette
+  (`primary = "ink"`, `highlight = "lime"`), and diagrams stay brand-free.
 - `[shape]`: `radius`, `font`, `edge-width`.
 - `[classes]`: named classes for nodes, groups and edges, e.g.
   `lime = { fill = "lime", color = "ink", sub = "ink-2" }`. Keys: `fill`, `stroke`
@@ -309,8 +316,12 @@ A theme is a TOML file (bundled ones by name, others by path or `PDG_THEME_PATH`
   `.band` (fill, no outline), `.open` (group without a box; unlike `.bare` it keeps its
   padding), and `.on-<name>` for every palette entry: filled with that colour, text and
   subtitle in `on-<name>` from the palette if set (`on-mint = "white"`), else whichever
-  of fg and bg contrasts more. A theme's `[classes]` and `css` may restyle any of them.
-- `utilities = true`: one class per palette entry and property, so diagrams pick colours
+  of fg and bg contrasts more. `.on-<role>` works for the colour roles too
+  (`.on-primary`, `.on-highlight`), and `.series-1` ... fill nodes and groups (readable
+  text) and colour edges with the theme's `series`. `.label` text, `.frame` outline,
+  `.placeholder` and `.band` fills come from the roles above. A theme's `[classes]` and
+  `css` may restyle any of them; `[classes]` values may name roles.
+- `utilities = true`: one class per palette entry, colour role and series entry, and per property, so diagrams pick colours
   and weights by name without CSS: `.fill-<name>` (nodes, groups), `.stroke-<name>`,
   `.text-<name>`, `.sub-<name>` (subtitle colour), `.fill-none`, `.stroke-none`, and
   `.regular` (400), `.bold` (700), `.heavy` (900). They come after `[classes]` and the

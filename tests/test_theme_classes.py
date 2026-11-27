@@ -90,3 +90,28 @@ def test_palette_on_entry_sets_the_text_colour_of_on_classes(tmp_path):
     build_scene(doc)
     assert doc.items["a"].style["color"] == "#ffffff"
     assert "on-on-cyan" not in theme_css(str(p))
+
+
+def test_colour_roles_and_series_come_from_the_theme(tmp_path):
+    roles = '\n[roles]\nprimary = "ink"\nhighlight = "lime"\nlabel-text = "ink"\nseries = ["lime", "purple"]\n'
+    p = _theme(tmp_path, roles, top="utilities = true\n")
+    doc = parse(
+        f'graph theme={p}\na "A" .on-primary sub="s"\nb "B" .on-highlight\nc "C" .label\nd "D" .series-2\ne "E" .text-highlight\nf "F"\nf -> a .series-1\n'
+    )
+    build_scene(doc)
+    it = doc.items
+    assert it["a"].style["fill"] == "#093034" and it["a"].style["color"] == "#ffffff" and it["a"].sub_style["color"] == "#ffffff"
+    assert it["b"].style["fill"] == "#a8d729" and it["b"].style["color"] == "#151915"
+    assert it["c"].style["color"] == "#093034"
+    assert it["d"].style["fill"] == "#4a584a"
+    assert it["e"].style["color"] == "#a8d729"
+    assert doc.edges[0].style["stroke"] == "#a8d729"
+    from predictygraph.theme import theme_colours
+
+    cols = theme_colours(str(p))
+    assert cols["primary"] == "#093034" and cols["series-2"] == "#4a584a" and cols["highlight"] == "#a8d729"
+
+
+def test_unknown_role_is_an_error(tmp_path):
+    with pytest.raises(ThemeError):
+        theme_css(str(_theme(tmp_path, '\n[roles]\nbrand-colour = "ink"\n')))

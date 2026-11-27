@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+Colour roles: a theme says what its colours mean (`[roles] primary = "ink"`, `highlight = "lime"`, `secondary`, `tertiary`, `positive`, `emphasis`, `highlight-soft`) and lists its categorical colours (`series = [...]`). Diagrams use the meanings: `.on-primary`, `.on-highlight`, `.series-1` ..., and with utilities `.fill-primary`, `.text-highlight`, `.fill-series-2`. Switching the theme recolours a diagram without touching it. `theme_colours()` returns every palette entry, role and series colour as hex, for hosts that colour charts with the same names (decktile's `pal["primary"]`).
+
+`.label`, `.frame`, `.placeholder` and `.band` take their colours from the new roles `label-text`, `frame-stroke`, `placeholder-fill`/`placeholder-stroke` and `band-fill`. `.label` now sets its text colour (the `label-text` role, default fg): a diagram that coloured labels through a plain `node { color }` rule needs `.text-<colour>` on them or a `label-text` role.
+
 ## 0.5.0
 
 Generic classes in every theme, so diagrams name what an item is and the theme picks the colours: `.label .plain .strong .quiet .chip .card .frame .outline .placeholder .ghost .band .open`, and `.on-<colour>` for each palette entry (filled with that colour, text in `on-<colour>` from the palette or else whichever of fg/bg reads better).

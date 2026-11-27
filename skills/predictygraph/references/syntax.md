@@ -53,7 +53,9 @@ Each theme also has classes `.red .orange .yellow .green .cyan .blue .purple`, a
 generic ones that say what an item is, so the diagram needs no colours of its own:
 `.label` (text, no box), `.plain .strong .quiet` (text weight/colour), `.chip .card .frame
 .placeholder .ghost .outline` (boxes), `.band .open` (groups with/without a fill), and
-`.on-<colour>` (filled box with readable text, e.g. `.on-blue`). Themes with
+`.on-<colour>` (filled box with readable text, e.g. `.on-blue`). Colour roles name a
+meaning, so a brand theme decides the colour: `.on-primary .on-highlight .on-secondary
+.on-positive`, and `.series-1` `.series-2` ... for categories (jobs, clusters). Themes with
 `utilities = true` add `.fill-<colour> .stroke-<colour> .text-<colour> .sub-<colour>
 .regular .bold .heavy` for one-off colours.
 

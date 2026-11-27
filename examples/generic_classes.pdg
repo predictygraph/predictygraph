@@ -3,19 +3,24 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Generic theme classes: the diagram says what each item is (.card, .chip, .label,
-# .placeholder, .on-blue ...) and the theme picks the colours. Try --theme nord or
-# --theme dracula: nothing in this file changes.
+# .placeholder) and what a colour means (.on-primary, .series-1 ...); the theme picks
+# the colours. Try --theme nord or --theme dracula: nothing in this file changes.
 graph theme=github-light layout=column gap=14 align=stretch padding=8
 group req "Request path" layout=row gap=12 .band {
   client "Client" .card sub="browser or CLI"
-  api "API gateway" .on-blue sub="auth, rate limits"
+  api "API gateway" .on-primary sub="auth, rate limits"
   svc "Service" .frame sub="business logic"
 }
 group store layout=row gap=12 .open {
-  db "Primary DB" .on-green
+  db "Primary DB" .on-positive
   cache "Cache" .chip
   spare "spare capacity" .placeholder
   old "retired" .ghost
+}
+group jobs layout=row gap=8 .open {
+  j1 "batch" .series-1
+  j2 "stream" .series-2
+  j3 "replay" .series-3
 }
 note "reads go to the cache first" .label .quiet
 client -> api
