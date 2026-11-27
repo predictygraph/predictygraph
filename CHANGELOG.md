@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+Theme files: `[palette]` entries may name another entry (`lime = "green"`), so brand colours sit next to the hues; new `[classes]` table defines named colour classes for nodes, groups and edges (`lime = { fill = "lime", color = "ink", sub = "ink-2" }`). The theme TOML format is now documented in the spec.
+
 ## 0.4.1
 
 `rem` font sizes: always relative to the graph's size, on subtitles, edge labels and step badges too (`em` there is relative to the owner). A theme can define one type scale, e.g. `graph { --t12: 0.8rem; }` and `sub { font-size: var(--t12); }`, that renders the same everywhere.

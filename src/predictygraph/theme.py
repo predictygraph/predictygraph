@@ -37,6 +37,46 @@ def _mix(a: str, b: str, t: float) -> str:
     return "#" + "".join(f"{round(x * t + y * (1 - t)):02x}" for x, y in zip(ca, cb))
 
 
+def _resolve_aliases(pal: dict, name: str) -> dict:
+    """Palette values are #rrggbb or the name of another palette entry (`edge = "ink"`)."""
+    out = {}
+    for k, v in pal.items():
+        seen = {k}
+        while isinstance(v, str) and v in pal and v not in seen:
+            seen.add(v)
+            v = pal[v]
+        if not (isinstance(v, str) and v.startswith("#") and len(v) == 7):
+            raise ThemeError(f"theme {name!r}: palette.{k} must be #rrggbb or a palette name, got {pal[k]!r}")
+        out[k] = v
+    return out
+
+
+CLASS_KEYS = {"fill", "stroke", "color", "sub", "edge", "title-fill"}
+
+
+def _class_rules(classes: dict, pal: dict, name: str) -> list[str]:
+    """`[classes] lime = { fill = "lime", color = "ink", sub = "ink-2", edge = "lime" }`:
+    `node.lime, group.lime` get fill/stroke/color (stroke defaults to fill), `node.lime sub`
+    the `sub` colour, `edge.lime` the `edge` colour (default: the fill). Values are palette
+    names or any CSS colour."""
+    lines = []
+    for cls, spec in classes.items():
+        if not isinstance(spec, dict) or set(spec) - CLASS_KEYS:
+            raise ThemeError(f"theme {name!r}: classes.{cls} keys must be among {sorted(CLASS_KEYS)}")
+        val = {k: f"var(--{v})" if v in pal else v for k, v in spec.items()}
+        box = {k: val[k] for k in ("fill", "stroke", "color", "title-fill") if k in val}
+        if "fill" in box:
+            box.setdefault("stroke", box["fill"])
+        if box:
+            lines.append(f"node.{cls}, group.{cls} {{ " + " ".join(f"{k}: {v};" for k, v in box.items()) + " }")
+        if "sub" in val:
+            lines.append(f"node.{cls} sub {{ color: {val['sub']}; }}")
+        if "edge" in val or "fill" in val:
+            c = val.get("edge", val.get("fill"))
+            lines.append(f"edge.{cls} {{ stroke: {c}; color: {c}; }}")
+    return lines
+
+
 def find_theme(name: str, base_dir: str = ".") -> Path:
     cand = Path(base_dir) / name
     if name.endswith(".toml") and cand.exists():
@@ -62,7 +102,7 @@ def load_theme(name: str, base_dir: str = ".", _seen=()) -> dict:
         if data["extends"] in _seen:
             raise ThemeError(f"{path}: extends cycle")
         parent = load_theme(data["extends"], str(path.parent), _seen + (name,))
-        for sect in ("palette", "roles", "shape", "seaborn"):  # [seaborn]: chart settings for decktile, unused here
+        for sect in ("palette", "roles", "shape", "seaborn", "classes"):  # [seaborn]: chart settings for decktile, unused here
             parent.setdefault(sect, {}).update(data.get(sect, {}))
         if "css" in data:  # extra rules stack: parent's first, then the child's
             parent["css"] = parent.get("css", "") + "\n" + data["css"]
@@ -74,13 +114,10 @@ def load_theme(name: str, base_dir: str = ".", _seen=()) -> dict:
 
 def theme_css(name: str, base_dir: str = ".") -> str:
     t = load_theme(name, base_dir)
-    pal = dict(t.get("palette", {}))
+    pal = _resolve_aliases(dict(t.get("palette", {})), name)
     missing = [k for k in REQUIRED if k not in pal]
     if missing:
         raise ThemeError(f"theme {name!r} palette missing: {', '.join(missing)}")
-    for k, v in pal.items():
-        if not (isinstance(v, str) and v.startswith("#") and len(v) == 7):
-            raise ThemeError(f"theme {name!r}: palette.{k} must be #rrggbb, got {v!r}")
     pal.setdefault("bg-alt", _mix(pal["surface"], pal["bg"], 0.45))
     for h in HUES:
         pal.setdefault(f"{h}-soft", _mix(pal[h], pal["bg"], 0.22))
@@ -113,6 +150,7 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines.append("node.solid { fill: var(--fg); stroke: var(--fg); color: var(--bg); }")
     if "edge-width" in shape:
         lines.append(f"edge {{ stroke-width: {shape['edge-width']}; }}")
+    lines += _class_rules(t.get("classes", {}), pal, name)
     if t.get("css"):  # free-form rules after the generated ones; var(--hue) works here
         lines.append(t["css"])
     return "\n".join(lines) + "\n"

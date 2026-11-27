@@ -89,7 +89,12 @@ def _curve_points(segs, n=40):
             for i in range(1, n + 1):
                 t = i / n
                 u = 1 - t
-                pts.append((u**3 * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t**3 * x3, u**3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t**3 * y3))
+                pts.append(
+                    (
+                        u**3 * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t**3 * x3,
+                        u**3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t**3 * y3,
+                    )
+                )
             cur = (x3, y3)
     return pts
 

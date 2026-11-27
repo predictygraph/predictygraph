@@ -281,6 +281,28 @@ Stylesheets are layered, each overriding the one before:
 Themes only set colours and shape unless their TOML sets `[shape] font`, so the
 default font survives a theme change.
 
+### Theme files (TOML)
+
+A theme is a TOML file (bundled ones by name, others by path or `PDG_THEME_PATH`):
+
+- `schema = 1`, `name`, `dark = true|false`, `extends = "other"` (the child's tables
+  are merged over the parent's; `css` strings stack, parent first).
+- `[palette]`: named colours, each `#rrggbb` or the name of another entry
+  (`edge-ink = "ink"`). Required: `bg surface fg muted border` and the hues `red orange
+  yellow green cyan blue purple`. Every entry becomes a CSS variable (`var(--ink)`),
+  each hue also gets a `-soft` tint, and `bg-alt` defaults to a mix of surface and bg.
+  Brand colours beyond the hues go here too, so diagrams name roles, not hex codes.
+- `[roles]`: which palette entry plays `accent danger node-fill node-stroke node-text
+  group-fill group-stroke group-text edge edge-text`.
+- `[shape]`: `radius`, `font`, `edge-width`.
+- `[classes]`: named colour classes for nodes, groups and edges, e.g.
+  `lime = { fill = "lime", color = "ink", sub = "ink-2" }`. Keys: `fill`, `stroke`
+  (default: the fill), `color` (text), `title-fill`, `sub` (subtitle colour), `edge`
+  (colour of `edge.lime`, default: the fill). Values are palette names or CSS colours.
+  `.lime` then works on any node, group or edge.
+- `css`: free CSS appended after the generated rules (`var(--name)` works).
+- `[seaborn]`: chart settings for decktile; ignored by pdg.
+
 Supported properties:
 
 - Box: `fill`, `stroke`, `stroke-width`, `stroke-dasharray`, `border-radius`,
