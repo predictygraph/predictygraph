@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+Generic classes in every theme, so diagrams name what an item is and the theme picks the colours: `.label .plain .strong .quiet .chip .card .frame .outline .placeholder .ghost .band .open`, and `.on-<colour>` for each palette entry (filled with that colour, text in `on-<colour>` from the palette or else whichever of fg/bg reads better).
+
+These names are now styled by every theme. A diagram that already uses one of them for something else keeps its own look where its css sets the same properties (diagram css wins over the theme), but properties it leaves unset now come from the generic class.
+
 ## 0.4.3
 
 Theme files: `utilities = true` adds `.fill-<colour> .stroke-<colour> .text-<colour> .sub-<colour>` classes for every palette entry, plus `.fill-none .stroke-none .regular .bold .heavy`, so diagrams set colours and weights without CSS. `[classes]` entries accept `font-weight` and `sub-weight`.

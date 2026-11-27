@@ -68,3 +68,25 @@ def test_utilities_pick_palette_colours_and_weights_by_class(tmp_path):
 def test_unknown_class_key_is_an_error(tmp_path):
     with pytest.raises(ThemeError):
         theme_css(str(_theme(tmp_path, '[classes]\nx = { colour = "ink" }\n')))
+
+
+def test_generic_classes_work_in_every_theme(tmp_path):
+    p = _theme(tmp_path)
+    doc = parse(f'graph theme={p}\na "A" .label\nb "B" .card\nc "C" .on-blue sub="s"\nd "D" .on-yellow\ne "E" .quiet\n')
+    build_scene(doc)
+    it = doc.items
+    assert it["a"].style["fill"] == "none" and str(it["a"].style["font-weight"]) == "400"
+    assert it["b"].style["fill"] == "#ffffff" and it["b"].style["stroke"] == "#dde3e8"
+    # .on-<name>: the fill plus whichever of fg/bg reads better on it, subtitle included
+    assert it["c"].style["fill"] == "#093034" and it["c"].style["color"] == "#ffffff"
+    assert it["c"].sub_style["color"] == "#ffffff"
+    assert it["d"].style["color"] == "#151915"
+    assert it["e"].style["color"] == "#808080"
+
+
+def test_palette_on_entry_sets_the_text_colour_of_on_classes(tmp_path):
+    p = _theme(tmp_path, 'on-cyan = "bg"\n')
+    doc = parse(f'graph theme={p}\na "A" .on-cyan\n')
+    build_scene(doc)
+    assert doc.items["a"].style["color"] == "#ffffff"
+    assert "on-on-cyan" not in theme_css(str(p))

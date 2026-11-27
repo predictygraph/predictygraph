@@ -49,7 +49,13 @@ Properties: `fill`, `stroke`, `stroke-width`, `stroke-dasharray`, `border-radius
 `label-position: top|bottom|left`, `border: pulse|march|glow`.
 
 Theme colours as variables: `var(--green)`, `var(--blue)`, `var(--muted)`, `var(--border)` ...
-Each theme also has classes `.red .orange .yellow .green .cyan .blue .purple`.
+Each theme also has classes `.red .orange .yellow .green .cyan .blue .purple`, and
+generic ones that say what an item is, so the diagram needs no colours of its own:
+`.label` (text, no box), `.plain .strong .quiet` (text weight/colour), `.chip .card .frame
+.placeholder .ghost .outline` (boxes), `.band .open` (groups with/without a fill), and
+`.on-<colour>` (filled box with readable text, e.g. `.on-blue`). Themes with
+`utilities = true` add `.fill-<colour> .stroke-<colour> .text-<colour> .sub-<colour>
+.regular .bold .heavy` for one-off colours.
 
 ## Command line
 

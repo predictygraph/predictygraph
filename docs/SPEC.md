@@ -301,6 +301,15 @@ A theme is a TOML file (bundled ones by name, others by path or `PDG_THEME_PATH`
   (colour of `edge.lime`, default: the fill), `font-weight` and `sub-weight` (`400`,
   `"bold"`). Colours are palette names or CSS colours.
   `.lime` then works on any node, group or edge.
+- Generic classes (every theme): `.label` (text without a box, regular weight),
+  `.plain` (regular, fg), `.strong` (bold, fg), `.quiet` (regular, muted), `.chip`
+  (surface fill, no outline), `.card` (bg fill, border hairline), `.frame` (bg fill, fg
+  outline), `.outline` (no fill; colour it with `.stroke-<name>`), `.placeholder` (free
+  slot: surface fill, border outline), `.ghost` (dashed muted outline, muted text),
+  `.band` (fill, no outline), `.open` (group without a box; unlike `.bare` it keeps its
+  padding), and `.on-<name>` for every palette entry: filled with that colour, text and
+  subtitle in `on-<name>` from the palette if set (`on-mint = "white"`), else whichever
+  of fg and bg contrasts more. A theme's `[classes]` and `css` may restyle any of them.
 - `utilities = true`: one class per palette entry and property, so diagrams pick colours
   and weights by name without CSS: `.fill-<name>` (nodes, groups), `.stroke-<name>`,
   `.text-<name>`, `.sub-<name>` (subtitle colour), `.fill-none`, `.stroke-none`, and

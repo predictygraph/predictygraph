@@ -82,6 +82,61 @@ def _class_rules(classes: dict, pal: dict, name: str) -> list[str]:
 
 WEIGHTS = {"regular": 400, "bold": 700, "heavy": 900}
 
+# Generic classes every theme gets, written against the required palette names so they
+# fit light and dark themes alike. A theme's [classes] and css come later and may restyle them.
+GENERIC = (
+    ("label", "fill: none; stroke: none; font-weight: 400;"),  # text without a box
+    ("plain", "font-weight: 400; color: var(--fg);"),
+    ("strong", "font-weight: 700; color: var(--fg);"),
+    ("quiet", "font-weight: 400; color: var(--muted);"),  # secondary text
+    ("chip", "fill: var(--surface); stroke: none; font-weight: 400; color: var(--fg);"),
+    ("card", "fill: var(--bg); stroke: var(--border);"),  # page-coloured box, hairline
+    ("frame", "fill: var(--bg); stroke: var(--fg);"),  # page-coloured box, strong outline
+    ("outline", "fill: none;"),  # outline only; colour it with .stroke-<name>
+    ("placeholder", "fill: var(--surface); stroke: var(--border);"),  # free slot, unused capacity
+    ("ghost", "fill: var(--bg); stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; color: var(--muted); font-weight: 400;"),
+    ("band", "fill: var(--surface); stroke: none;"),  # filled strip without an outline
+    ("open", "fill: none; stroke: none;"),  # group without a box (keeps its padding, unlike .bare)
+)
+
+
+BOXES = ("chip", "card", "frame", "placeholder", "band")  # page-like boxes: subtitles in muted
+
+
+def _luminance(hex_: str) -> float:
+    def ch(i):
+        c = int(hex_[i : i + 2], 16) / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    return 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5)
+
+
+def _contrast(a: str, b: str) -> float:
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def on_colour(pal: dict, name: str) -> str:
+    """Text colour for a box filled with `name`: palette `on-<name>` if the theme sets it,
+    else whichever of fg and bg contrasts more with the fill (bg on a tie)."""
+    if f"on-{name}" in pal:
+        return f"on-{name}"
+    return "fg" if _contrast(pal[name], pal["fg"]) > _contrast(pal[name], pal["bg"]) else "bg"
+
+
+def generic_rules(pal: dict) -> list[str]:
+    """`.label .plain .strong .quiet .chip .card .frame .outline .placeholder .ghost .band
+    .open` and `.on-<name>` (filled with a palette colour, readable text) for every entry."""
+    out = [f"node.{c}, group.{c} {{ {decl} }}" for c, decl in GENERIC]
+    out.append(", ".join(f"node.{c} sub" for c in BOXES) + " { color: var(--muted); }")
+    for k in pal:
+        if k.startswith("on-"):
+            continue
+        t = on_colour(pal, k)
+        out.append(f"node.on-{k}, group.on-{k} {{ fill: var(--{k}); stroke: var(--{k}); color: var(--{t}); }}")
+        out.append(f"node.on-{k} sub, group.on-{k} sub {{ color: var(--{t}); }}")
+    return out
+
 
 def utility_rules(pal: dict) -> list[str]:
     """`utilities = true`: one class per palette colour and property, so a diagram picks
@@ -91,6 +146,7 @@ def utility_rules(pal: dict) -> list[str]:
     `[classes]` and the theme's `css`, so `.lime .text-ink` is lime with ink text."""
     sel = lambda c: f"node.{c}, group.{c}, edge.{c}"  # noqa: E731
     out = [f"{sel('fill-none')} {{ fill: none; }}", f"{sel('stroke-none')} {{ stroke: none; }}"]
+    pal = {k: v for k, v in pal.items() if not k.startswith("on-")}
     for k in pal:
         out.append(f"node.fill-{k}, group.fill-{k} {{ fill: var(--{k}); }}")
         out.append(f"{sel('stroke-' + k)} {{ stroke: var(--{k}); }}")
@@ -175,6 +231,7 @@ def theme_css(name: str, base_dir: str = ".") -> str:
     lines.append("node.solid { fill: var(--fg); stroke: var(--fg); color: var(--bg); }")
     if "edge-width" in shape:
         lines.append(f"edge {{ stroke-width: {shape['edge-width']}; }}")
+    lines += generic_rules(pal)
     lines += _class_rules(t.get("classes", {}), pal, name)
     if t.get("css"):  # free-form rules after the generated ones; var(--hue) works here
         lines.append(t["css"])
